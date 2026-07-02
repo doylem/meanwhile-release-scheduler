@@ -28,7 +28,6 @@ module.exports = {
       },
       fontFamily: {
         display: ['"IBM Plex Mono"', 'monospace'],
-        body: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'monospace'],
       },
       boxShadow: {

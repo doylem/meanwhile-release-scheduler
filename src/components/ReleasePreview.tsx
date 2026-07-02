@@ -1,5 +1,4 @@
 import { LABELS } from '../../config/labels.config';
-import { buildEventTitle } from '../lib/calendarEvents';
 import type { Release } from '../lib/types';
 
 export function ReleasePreview({
@@ -16,68 +15,73 @@ export function ReleasePreview({
   return (
     <div className="space-y-8">
       <section className="rounded-xl border border-wire/20 bg-elevated/40 p-6">
-        <p className="text-xs font-mono uppercase tracking-widest text-muted mb-4">Release details</p>
+        <p className="text-xs font-mono uppercase tracking-wider text-muted mb-4">Release details</p>
         <div className="grid grid-cols-2 gap-x-8 gap-y-4">
           <Row label="Label" value={label.name} />
           <Row label="Catalogue number" value={release.catalogueNumber} />
           <Row label="Artist" value={release.artist} />
           <Row label="Release title" value={release.releaseTitle} />
-          <Row label="Release date" value={release.releaseDateISO} />
+          <Row label="Release date" value={formatTaskDate(release.releaseDateISO)} />
           <Row label="Royalty rate" value={release.royaltyRate || '—'} />
-          <Row label="Royalty notes" value={release.royaltyNotes || '—'} />
-          <Row label="Genre / style" value={release.genre || '—'} />
+          {release.royaltyNotes && <Row label="Royalty notes" value={release.royaltyNotes} />}
+          {release.genre && <Row label="Genre" value={release.genre} />}
         </div>
 
         {release.tracks.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-wire/10">
-            <p className="text-xs font-mono uppercase tracking-widest text-muted mb-2">Tracklist</p>
+          <div className="mt-5 pt-4 border-t border-wire/10">
+            <p className="text-xs font-mono uppercase tracking-wider text-muted mb-3">Tracklist</p>
             <ol className="space-y-1">
-              {release.tracks.map((t, i) => (
-                <li key={i} className="text-sm text-snow/80 font-mono">
-                  <span className="text-muted mr-2">{String(i + 1).padStart(2, '0')}.</span>
-                  {t.title}
-                </li>
-              ))}
+              {release.tracks.map((t, i) => {
+                const trackArtist = t.artist;
+                const hasOwnRate = t.royaltyRate && t.royaltyRate !== release.royaltyRate;
+                return (
+                  <li key={i} className="text-sm text-snow/80 font-mono">
+                    <span className="text-muted mr-2">{String(i + 1).padStart(2, '0')}.</span>
+                    {trackArtist && <span className="text-cyan/80">{trackArtist} — </span>}
+                    {t.title}
+                    {hasOwnRate && (
+                      <span className="text-ghost text-xs ml-2">({t.royaltyRate})</span>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </div>
         )}
       </section>
 
       <section>
-        <p className="text-xs font-mono uppercase tracking-widest text-muted mb-4">
-          Generated tasks ({release.tasks.length})
+        <p className="text-sm font-mono font-semibold text-snow/80 mb-4">
+          {release.tasks.length} tasks will be added to your calendar
         </p>
-        <div className="rounded-xl border border-wire/10 overflow-hidden">
-          <table className="w-full text-xs font-mono">
+        <div className="rounded-xl border border-wire/20 overflow-hidden">
+          <table className="w-full text-sm font-mono">
             <thead>
-              <tr className="border-b border-wire/10 bg-elevated/20">
-                <th className="text-left px-4 py-3 text-muted uppercase tracking-widest">Due</th>
-                <th className="text-left px-4 py-3 text-muted uppercase tracking-widest">Task</th>
-                <th className="text-left px-4 py-3 text-muted uppercase tracking-widest">Owner</th>
-                <th className="text-left px-4 py-3 text-muted uppercase tracking-widest hidden lg:table-cell">
-                  Calendar title
-                </th>
+              <tr className="border-b border-wire/15 bg-elevated/30">
+                <th className="text-left px-4 py-3 text-xs text-muted uppercase tracking-wider">Due</th>
+                <th className="text-left px-4 py-3 text-xs text-muted uppercase tracking-wider">Task</th>
+                <th className="text-left px-4 py-3 text-xs text-muted uppercase tracking-wider">Owner</th>
               </tr>
             </thead>
             <tbody>
-              {release.tasks.map((task, i) => {
-                return (
-                  <tr
-                    key={task.id}
-                    className={`border-b border-wire/8 transition-colors ${
-                      i % 2 === 0 ? 'bg-transparent' : 'bg-elevated/10'
-                    }`}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-cyan/80">{task.dueDateISO}</td>
-                    <td className="px-4 py-3 text-snow/80">{task.title}</td>
-                    <td className="px-4 py-3 text-muted">{task.owner}</td>
-                    <td className="px-4 py-3 text-ghost hidden lg:table-cell">{buildEventTitle(release, task)}</td>
-                  </tr>
-                );
-              })}
+              {release.tasks.map((task, i) => (
+                <tr
+                  key={task.id}
+                  className={`border-b border-wire/8 hover:bg-elevated/30 transition-colors ${
+                    i % 2 === 0 ? 'bg-transparent' : 'bg-elevated/20'
+                  }`}
+                >
+                  <td className="px-4 py-3 whitespace-nowrap text-cyan/80">{formatTaskDate(task.dueDateISO)}</td>
+                  <td className="px-4 py-3 text-snow/80">{task.title}</td>
+                  <td className="px-4 py-3 text-muted">{task.owner}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+        <p className="text-xs font-mono text-ghost mt-2 pl-1">
+          All events are created as 9:00–9:15am in your calendar with popup reminders.
+        </p>
       </section>
 
       <div className="flex gap-3 pt-2">
@@ -106,4 +110,10 @@ function Row({ label, value }: { label: string; value: string }) {
       <div className="text-sm text-snow font-mono">{value}</div>
     </div>
   );
+}
+
+function formatTaskDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y!, m! - 1, d!);
+  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
 }

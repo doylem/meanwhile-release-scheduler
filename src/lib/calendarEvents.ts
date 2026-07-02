@@ -20,7 +20,9 @@ export function buildEventTitle(release: Release, task: ScheduledTask): string {
 
 export function buildEventDescription(release: Release, task: ScheduledTask): string {
   const label = LABELS[release.label];
-  const tracklist = release.tracks.map((t, i) => `  ${i + 1}. ${t.title}`).join('\n');
+  const tracklist = release.tracks
+    .map((t, i) => `  ${i + 1}. ${t.artist ? `${t.artist} — ` : ''}${t.title}`)
+    .join('\n');
   return [
     `Label: ${label.name}`,
     `Catalogue: ${release.catalogueNumber}`,
