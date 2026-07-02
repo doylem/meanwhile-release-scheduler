@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { LABELS, type LabelKey } from '../../config/labels.config';
 import { suggestNextCatalogueNumber } from '../lib/catalogue';
 import { isFriday, nextFriday } from '../lib/scheduling';
-import type { ReleaseInput } from '../lib/types';
+import type { ReleaseInput, Track } from '../lib/types';
 
 const labelOptions = Object.values(LABELS);
 
@@ -15,9 +15,9 @@ function emptyForm(): ReleaseInput {
     releaseTitle: '',
     tracks: [{ title: '' }],
     releaseDateISO: '',
-    royaltyRate: '',
+    royaltyRate: '50%',
     royaltyNotes: '',
-    genre: '',
+    genre: 'Progressive House',
     notes: '',
   };
 }
@@ -39,12 +39,17 @@ export function ReleaseForm({
     setForm((f) => ({
       ...f,
       label,
-      catalogueNumber: catalogueOverridden ? f.catalogueNumber : suggestNextCatalogueNumber(LABELS[label].latestCatalogueNumber),
+      catalogueNumber: catalogueOverridden
+        ? f.catalogueNumber
+        : suggestNextCatalogueNumber(LABELS[label].latestCatalogueNumber),
     }));
   }
 
-  function updateTrack(index: number, title: string) {
-    setForm((f) => ({ ...f, tracks: f.tracks.map((t, i) => (i === index ? { title } : t)) }));
+  function updateTrack(index: number, updates: Partial<Track>) {
+    setForm((f) => ({
+      ...f,
+      tracks: f.tracks.map((t, i) => (i === index ? { ...t, ...updates } : t)),
+    }));
   }
 
   function addTrack() {
@@ -70,7 +75,7 @@ export function ReleaseForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
         <Field label="Label">
           <select
@@ -86,7 +91,7 @@ export function ReleaseForm({
           </select>
         </Field>
 
-        <Field label="Catalogue number">
+        <Field label="Catalogue number" hint="Suggested — change if needed">
           <input
             value={form.catalogueNumber}
             onChange={(e) => {
@@ -119,22 +124,39 @@ export function ReleaseForm({
       <Field label="Tracklist">
         <div className="space-y-2">
           {form.tracks.map((t, i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                value={t.title}
-                onChange={(e) => updateTrack(i, e.target.value)}
-                placeholder={`Track ${i + 1}`}
-                className={`${inputClass} flex-1`}
-              />
-              {form.tracks.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeTrack(i)}
-                  className="text-xs font-mono text-muted hover:text-signal transition-colors px-2"
-                >
-                  remove
-                </button>
-              )}
+            <div key={i} className="rounded-lg border border-wire/15 bg-elevated/30 p-3 space-y-2">
+              <div className="flex gap-2 items-start">
+                <span className="text-ghost text-sm font-mono pt-2.5 w-5 flex-shrink-0 text-right">{i + 1}.</span>
+                <input
+                  value={t.title}
+                  onChange={(e) => updateTrack(i, { title: e.target.value })}
+                  placeholder={`Track ${i + 1} title`}
+                  className={`${inputClass} flex-1`}
+                />
+                {form.tracks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeTrack(i)}
+                    className="text-xs font-mono text-muted hover:text-signal transition-colors pt-2.5 flex-shrink-0"
+                  >
+                    remove
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2 pl-7">
+                <input
+                  value={t.artist ?? ''}
+                  onChange={(e) => updateTrack(i, { artist: e.target.value || undefined })}
+                  placeholder={form.artist ? `${form.artist} (default)` : 'Artist — same as release'}
+                  className={`${inputClass} flex-1 text-xs py-1.5`}
+                />
+                <input
+                  value={t.royaltyRate ?? ''}
+                  onChange={(e) => updateTrack(i, { royaltyRate: e.target.value || undefined })}
+                  placeholder={form.royaltyRate || '50%'}
+                  className={`${inputClass} w-24 text-xs py-1.5`}
+                />
+              </div>
             </div>
           ))}
           <button
@@ -148,7 +170,7 @@ export function ReleaseForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Release date (must be a Friday)">
+        <Field label="Release date" hint="New releases always go out on a Friday">
           <input
             type="date"
             value={form.releaseDateISO}
@@ -156,11 +178,16 @@ export function ReleaseForm({
               setForm((f) => ({ ...f, releaseDateISO: e.target.value }));
               setDateError(null);
             }}
-            className={inputClass}
+            className={dateInputClass}
             required
           />
           {friday === false && (
-            <p className="text-gold text-xs font-mono mt-1.5">Not a Friday in Australia/Melbourne.</p>
+            <p className="text-gold text-xs font-mono mt-1.5">
+              Not a Friday — did you mean {nextFriday(form.releaseDateISO)}?
+            </p>
+          )}
+          {dateError && (
+            <p className="text-signal text-xs font-mono mt-1.5">{dateError}</p>
           )}
         </Field>
 
@@ -172,24 +199,29 @@ export function ReleaseForm({
             placeholder="Progressive House"
           />
         </Field>
+      </div>
 
-        <Field label="Royalty rate">
-          <input
-            value={form.royaltyRate}
-            onChange={(e) => setForm((f) => ({ ...f, royaltyRate: e.target.value }))}
-            className={inputClass}
-            placeholder="70%"
-          />
-        </Field>
-
-        <Field label="Royalty notes">
-          <input
-            value={form.royaltyNotes}
-            onChange={(e) => setForm((f) => ({ ...f, royaltyNotes: e.target.value }))}
-            className={inputClass}
-            placeholder="70% royalties to artist"
-          />
-        </Field>
+      {/* Financial details — always visible */}
+      <div className="rounded-lg border border-wire/15 bg-elevated/20 p-4 space-y-4">
+        <p className="text-xs font-mono uppercase tracking-wider text-muted">Financial details</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Default royalty rate">
+            <input
+              value={form.royaltyRate}
+              onChange={(e) => setForm((f) => ({ ...f, royaltyRate: e.target.value }))}
+              className={inputClass}
+              placeholder="50%"
+            />
+          </Field>
+          <Field label="Royalty notes" hint="Any per-track exceptions or general notes">
+            <input
+              value={form.royaltyNotes}
+              onChange={(e) => setForm((f) => ({ ...f, royaltyNotes: e.target.value }))}
+              className={inputClass}
+              placeholder="50% royalties to the guys"
+            />
+          </Field>
+        </div>
       </div>
 
       <Field label="Notes (optional)">
@@ -197,15 +229,9 @@ export function ReleaseForm({
           value={form.notes}
           onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
           className={`${inputClass} resize-none`}
-          rows={3}
+          rows={2}
         />
       </Field>
-
-      {dateError && (
-        <p className="text-signal text-sm font-mono bg-signal/10 border border-signal/20 rounded-lg px-4 py-3">
-          {dateError}
-        </p>
-      )}
 
       <button
         type="submit"
@@ -221,11 +247,23 @@ export function ReleaseForm({
 const inputClass =
   'block w-full rounded-lg bg-elevated/60 border border-wire/20 px-4 py-2.5 text-snow placeholder:text-ghost focus:outline-none focus:border-cyan/50 focus:ring-1 focus:ring-cyan/15 transition-colors text-sm font-mono';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const dateInputClass =
+  'block w-full rounded-lg bg-elevated border border-wire/40 px-4 py-2.5 text-snow focus:outline-none focus:border-cyan/60 focus:ring-2 focus:ring-cyan/20 transition-colors text-sm font-mono ring-1 ring-wire/15';
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="block text-xs font-mono uppercase tracking-widest text-muted mb-2 mt-1">{label}</span>
+      <span className="block text-xs font-mono uppercase tracking-wider text-muted mb-2">{label}</span>
       {children}
+      {hint && <span className="block text-xs font-mono text-ghost mt-1">{hint}</span>}
     </label>
   );
 }

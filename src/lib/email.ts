@@ -1,14 +1,33 @@
 import { formatFridayLong } from './scheduling';
-import type { EmailDraft, EmailDraftInput } from './types';
+import type { EmailDraft, EmailDraftInput, Release } from './types';
 
 const DEFAULT_RECIPIENT = process.env.GMAIL_DRAFT_RECIPIENT || 'meanwhilerec@gmail.com';
+
+function buildRoyaltyLines(release: Release): string[] {
+  const allSameRate = release.tracks.every((t) => !t.royaltyRate || t.royaltyRate === release.royaltyRate);
+  if (allSameRate) {
+    return [`${release.genre}, ${release.royaltyNotes}`];
+  }
+  return [
+    `${release.genre}`,
+    ``,
+    `Royalties:`,
+    ...release.tracks.map((t, i) => {
+      const rate = t.royaltyRate || release.royaltyRate;
+      const artist = t.artist || release.artist;
+      return `${i + 1}. ${artist} - ${t.title}: ${rate}`;
+    }),
+  ];
+}
 
 export function generateEmailDraft(input: EmailDraftInput, recipient: string = DEFAULT_RECIPIENT): EmailDraft {
   const { release } = input;
 
   const subject = `${release.catalogueNumber} - ${release.artist} - Release assets`;
 
-  const tracklist = release.tracks.map((t, i) => `${i + 1}. ${release.artist} - ${t.title}`).join('\n');
+  const tracklist = release.tracks
+    .map((t, i) => `${i + 1}. ${t.artist || release.artist} - ${t.title}`)
+    .join('\n');
 
   const mastersLink = input.mastersLink;
   const artworkLink = input.artworkLink;
@@ -30,7 +49,7 @@ export function generateEmailDraft(input: EmailDraftInput, recipient: string = D
     ``,
     `Release Date: ${formatFridayLong(release.releaseDateISO)}`,
     ``,
-    `${release.genre}, ${release.royaltyNotes}`,
+    ...buildRoyaltyLines(release),
     ``,
     `MASTERS - ${mastersLine}`,
     ``,

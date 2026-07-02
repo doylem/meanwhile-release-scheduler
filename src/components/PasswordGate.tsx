@@ -80,7 +80,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
           className="w-full rounded-xl py-3 font-medium text-depth hover:opacity-90 transition-opacity"
           style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
         >
-          Unlock
+          Enter
         </button>
       </form>
     </div>

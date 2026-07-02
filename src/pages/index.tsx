@@ -116,7 +116,7 @@ function App() {
                   {modalStep === 'form' && 'Enter the release details below'}
                   {modalStep === 'preview' && 'Review the generated task schedule before committing'}
                   {modalStep === 'detail' &&
-                    (release ? `${release.artist} · ${release.releaseDateISO} · ${release.releaseId}` : '')}
+                    (release ? `${release.artist} · ${formatDate(release.releaseDateISO)}` : '')}
                 </p>
               </div>
               {modalStep === 'detail' && (
@@ -202,24 +202,34 @@ function LandingPage({
             <span className="text-muted text-sm font-mono">/ release scheduler</span>
           </div>
         </div>
-        <label className="flex items-center gap-2.5 text-sm text-muted cursor-pointer select-none">
-          <span className="font-mono">Dry run</span>
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <span className={`font-mono text-xs ${dryRun ? 'text-gold' : 'text-cyan'}`}>
+            {dryRun ? 'Test mode' : 'Live mode'}
+          </span>
           <div
             role="switch"
-            aria-checked={dryRun}
+            aria-checked={!dryRun}
             onClick={() => setDryRun(!dryRun)}
             className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-              dryRun ? 'bg-cyan/25' : 'bg-wire/15'
+              dryRun ? 'bg-gold/20' : 'bg-cyan/25'
             }`}
           >
             <span
               className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
-                dryRun ? 'translate-x-5 bg-cyan' : 'translate-x-0 bg-wire/40'
+                dryRun ? 'translate-x-0 bg-gold/60' : 'translate-x-5 bg-cyan'
               }`}
             />
           </div>
         </label>
       </header>
+
+      {dryRun && (
+        <div className="relative z-10 bg-gold/8 border-b border-gold/15 px-8 py-2">
+          <p className="text-xs font-mono text-gold/80 text-center">
+            Test mode is on — no calendar events, emails, or Dropbox actions will actually happen
+          </p>
+        </div>
+      )}
 
       <div className="relative z-10 px-8 pt-6">
         <GithubConnectGate />
@@ -324,8 +334,8 @@ function ManifestCard({ entry, onOpen }: { entry: ManifestEntry; onOpen: () => v
   return (
     <button
       onClick={onOpen}
-      className="group text-left w-full rounded-xl border border-wire/15 bg-surface transition-all duration-200 hover:bg-elevated hover:-translate-y-0.5 overflow-hidden"
-      style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}
+      className="group text-left w-full rounded-xl border border-wire/25 bg-surface transition-all duration-200 hover:bg-elevated hover:-translate-y-0.5 overflow-hidden"
+      style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(122,170,200,0.06)' }}
     >
       <div
         className="h-0.5 w-full"
@@ -383,7 +393,7 @@ function SeedCard({ seed, onOpen }: { seed: (typeof SEED_RELEASES)[number]; onOp
   return (
     <button
       onClick={onOpen}
-      className="group text-left w-full rounded-xl border border-wire/10 bg-surface/60 transition-all duration-200 hover:bg-surface hover:-translate-y-0.5 overflow-hidden"
+      className="group text-left w-full rounded-xl border border-wire/20 bg-surface/80 transition-all duration-200 hover:bg-surface hover:-translate-y-0.5 overflow-hidden"
       style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
     >
       <div
@@ -459,7 +469,7 @@ function ReleaseModal({
       }}
     >
       <div
-        className={`relative w-full ${wide ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl border border-wire/20 mb-12`}
+        className={`relative w-full ${wide ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl border border-wire/20 mb-12 mx-4`}
         style={{
           background: 'linear-gradient(170deg, #1a3456 0%, #122844 100%)',
           boxShadow: '0 32px 80px rgba(0,0,0,0.75), 0 1px 0 rgba(122,170,200,0.12)',
@@ -479,7 +489,7 @@ function ReleaseModal({
           ✕
         </button>
 
-        <div className="p-8 pt-7">{children}</div>
+        <div className="p-5 sm:p-8 pt-7">{children}</div>
       </div>
     </div>
   );
@@ -491,7 +501,7 @@ function GeometricBackground() {
       <svg
         viewBox="0 0 800 800"
         className="absolute -right-24 -top-24 w-[680px] h-[680px]"
-        style={{ opacity: 0.04 }}
+        style={{ opacity: 0.07 }}
       >
         <defs>
           <clipPath id="geo-clip-lines">
