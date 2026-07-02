@@ -1,0 +1,80 @@
+name: Publish result
+description: Commits results/{request_id}.json to the dedicated 'results' branch, and merges any pending manifest entry into releases/manifest.json
+inputs:
+  request_id:
+    required: true
+    description: The request ID whose result file should be published
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        REQUEST_ID: ${{ inputs.request_id }}
+      run: |
+        set -euo pipefail
+
+        if [ ! -f "results/${REQUEST_ID}.json" ]; then
+          echo "No result file found at results/${REQUEST_ID}.json — the script likely failed before writing one."
+          echo "Check the previous step's logs for the actual error."
+          exit 1
+        fi
+
+        git config user.email "actions@github.com"
+        git config user.name "github-actions[bot]"
+
+        # Stash files we need before switching branches
+        cp "results/${REQUEST_ID}.json" "/tmp/${REQUEST_ID}.json"
+        if [ -f "releases/pending.json" ]; then
+          cp "releases/pending.json" "/tmp/manifest-pending.json"
+        fi
+
+        git fetch origin results:results 2>/dev/null || true
+
+        if git show-ref --verify --quiet refs/heads/results; then
+          git checkout results
+        else
+          git checkout --orphan results
+          git rm -rf . > /dev/null 2>&1 || true
+        fi
+
+        mkdir -p results
+        cp "/tmp/${REQUEST_ID}.json" "results/${REQUEST_ID}.json"
+        git add "results/${REQUEST_ID}.json"
+
+        # Merge pending manifest entry into releases/manifest.json if present
+        if [ -f "/tmp/manifest-pending.json" ]; then
+          mkdir -p releases
+          python3 - <<'PYEOF'
+import json, os, sys
+
+pending_path = '/tmp/manifest-pending.json'
+manifest_path = 'releases/manifest.json'
+
+with open(pending_path) as f:
+    new_entry = json.load(f)
+
+existing = []
+if os.path.exists(manifest_path):
+    with open(manifest_path) as f:
+        try:
+            existing = json.load(f)
+        except Exception:
+            existing = []
+
+# Upsert: remove any existing entry with the same releaseId, then append the new one
+updated = [e for e in existing if e.get('releaseId') != new_entry.get('releaseId')]
+updated.append(new_entry)
+updated.sort(key=lambda x: x.get('releaseDateISO', ''))
+
+with open(manifest_path, 'w') as f:
+    json.dump(updated, f, indent=2)
+    f.write('\n')
+
+print(f'Manifest updated: {len(updated)} release(s)')
+PYEOF
+          git add "releases/manifest.json"
+        fi
+
+        git commit -m "Result for ${REQUEST_ID}"
+        git push origin results

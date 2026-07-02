@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+.DS_Store
+
+# Local result files written by scripts during dev — committed only on the
+# dedicated `results` branch by CI, never on main.
+/results/*.json

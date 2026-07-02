@@ -1,0 +1,45 @@
+name: Check Dropbox Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "JSON payload: { catalogueNumber }"
+        required: true
+      request_id:
+        required: true
+      dry_run:
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  check-dropbox-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run check-dropbox script
+        env:
+          PAYLOAD_JSON: ${{ github.event.inputs.payload }}
+          REQUEST_ID: ${{ github.event.inputs.request_id }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          DROPBOX_CLIENT_ID: ${{ secrets.DROPBOX_CLIENT_ID }}
+          DROPBOX_CLIENT_SECRET: ${{ secrets.DROPBOX_CLIENT_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_BASE_PATH: ${{ secrets.DROPBOX_BASE_PATH }}
+        run: npx tsx scripts/check-dropbox.ts
+
+      - name: Publish result to results branch
+        uses: ./.github/actions/publish-result
+        with:
+          request_id: ${{ github.event.inputs.request_id }}

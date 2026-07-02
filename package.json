@@ -1,0 +1,38 @@
+{
+  "name": "meanwhile-release-scheduler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Release scheduling app for Meanwhile Recordings & Meanwhile Horizons",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "next lint",
+    "script:create-release": "tsx scripts/create-release.ts",
+    "script:move-release": "tsx scripts/move-release.ts",
+    "script:check-dropbox": "tsx scripts/check-dropbox.ts",
+    "script:generate-email": "tsx scripts/generate-email.ts"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "luxon": "3.5.0",
+    "googleapis": "144.0.0",
+    "dropbox": "10.34.0"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "@types/node": "20.14.15",
+    "@types/react": "18.3.3",
+    "@types/luxon": "3.4.2",
+    "tailwindcss": "3.4.7",
+    "postcss": "8.4.41",
+    "autoprefixer": "10.4.19",
+    "vitest": "2.0.5",
+    "tsx": "4.16.5"
+  }
+}

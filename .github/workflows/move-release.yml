@@ -1,0 +1,49 @@
+name: Move Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "JSON payload: { currentRelease, newReleaseDateISO, emailRemindersEnabled }"
+        required: true
+      request_id:
+        required: true
+      dry_run:
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  move-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run move-release script
+        env:
+          PAYLOAD_JSON: ${{ github.event.inputs.payload }}
+          REQUEST_ID: ${{ github.event.inputs.request_id }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GAVIN_EMAIL: ${{ secrets.GAVIN_EMAIL }}
+          MATTY_EMAIL: ${{ secrets.MATTY_EMAIL }}
+          JAMES_EMAIL: ${{ secrets.JAMES_EMAIL }}
+          ATTENDEE_EMAILS: ${{ secrets.ATTENDEE_EMAILS }}
+        run: npx tsx scripts/move-release.ts
+
+      - name: Publish result to results branch
+        uses: ./.github/actions/publish-result
+        with:
+          request_id: ${{ github.event.inputs.request_id }}
