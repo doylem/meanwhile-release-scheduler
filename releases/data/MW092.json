@@ -1,6 +1,6 @@
 {
   "id": "b74cf92e-40fb-4a51-998b-3790f0ecbf43",
-  "savedAt": "2026-07-03T10:27:09.966Z",
+  "savedAt": "2026-07-03T10:27:51.893Z",
   "input": {
     "label": "meanwhile-recordings",
     "catalogueNumber": "MW092",
@@ -18,7 +18,7 @@
     "royaltyRate": "50%",
     "royaltyNotes": "",
     "genre": "Progressive House",
-    "notes": ""
+    "notes": "testing 1234 ca cawww\n"
   },
   "isScheduled": false
 }
