@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { GithubConnectGate } from "../components/GithubConnectGate";
+import { GithubStatusButton, GithubConnectModal } from "../components/GithubConnectGate";
 import { PasswordGate } from "../components/PasswordGate";
 import { ReleaseDetail } from "../components/ReleaseDetail";
 import { ReleaseForm } from "../components/ReleaseForm";
@@ -243,17 +243,14 @@ function App() {
         localReleases={localReleases}
         releasesLoading={releasesLoading}
         manifestEntries={manifestEntries}
-        manifestLoading={manifestLoading}
         manifestError={manifestError}
         releaseStates={releaseStates}
-        releasesSyncing={releasesSyncing}
         onNewRelease={openFormNew}
         onEditLocal={openFormEdit}
         onActionsLocal={openActionsLocal}
         onActionsManifest={openActionsManifest}
         onEditSeed={openFormSeed}
         onDeleteLocal={handleDeleteLocal}
-        onRefresh={refreshManifest}
         dryRun={dryRun}
         setDryRun={setDryRun}
       />
@@ -349,38 +346,33 @@ function LandingPage({
   localReleases,
   releasesLoading,
   manifestEntries,
-  manifestLoading,
   manifestError,
   releaseStates,
-  releasesSyncing,
   onNewRelease,
   onEditLocal,
   onActionsLocal,
   onActionsManifest,
   onEditSeed,
   onDeleteLocal,
-  onRefresh,
   dryRun,
   setDryRun,
 }: {
   localReleases: LocalRelease[];
   releasesLoading: boolean;
   manifestEntries: ManifestEntry[] | null;
-  manifestLoading: boolean;
   manifestError: string | null;
   releaseStates: Record<string, ReleaseState>;
-  releasesSyncing: boolean;
   onNewRelease: () => void;
   onEditLocal: (local: LocalRelease) => void;
   onActionsLocal: (local: LocalRelease) => void;
   onActionsManifest: (entry: ManifestEntry) => void;
   onEditSeed: (seed: SeedType) => void;
   onDeleteLocal: (id: string) => void;
-  onRefresh: () => void;
   dryRun: boolean;
   setDryRun: (v: boolean) => void;
 }) {
   const { basePath } = useRouter();
+  const [githubModalOpen, setGithubModalOpen] = useState(false);
   const localCoverageKeys = useMemo(
     () =>
       new Set(
@@ -517,13 +509,7 @@ function LandingPage({
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={onRefresh}
-            title={releasesSyncing ? "Syncing…" : "Refresh manifest"}
-            className="text-sm font-mono text-muted hover:text-snow transition-colors"
-          >
-            {manifestLoading || releasesSyncing ? "…" : "↻"}
-          </button>
+          <GithubStatusButton onClick={() => setGithubModalOpen(true)} />
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <span
               className={`font-mono text-xs ${dryRun ? "text-gold" : "text-cyan"}`}
@@ -557,9 +543,7 @@ function LandingPage({
         </div>
       )}
 
-      <div className="relative z-10 px-8 pt-6">
-        <GithubConnectGate />
-      </div>
+      {githubModalOpen && <GithubConnectModal onClose={() => setGithubModalOpen(false)} />}
 
       <main className="relative z-10 px-8 py-10">
         {manifestError && (
@@ -682,7 +666,16 @@ function LandingPage({
   );
 }
 
-// ─── Status tag ─────────────────────────────────────────────────────────────
+// ─── Tags ────────────────────────────────────────────────────────────────────
+
+function CatalogueTag({ code }: { code: string }) {
+  if (!code) return null;
+  return (
+    <span className="text-[11px] font-mono uppercase tracking-wider rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border border-snow/25 text-snow/75">
+      {code}
+    </span>
+  );
+}
 
 function StatusTag({
   completeness,
@@ -778,9 +771,7 @@ function LocalReleaseCard({
             {label.name}
           </span>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
-            <span className="text-[10px] font-mono text-ghost">
-              {input.catalogueNumber || "—"}
-            </span>
+            <CatalogueTag code={input.catalogueNumber} />
             <StatusTag completeness={completeness} scheduled={scheduled} />
           </div>
         </div>
@@ -927,9 +918,7 @@ function ManifestOnlyCard({
             {label.name}
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono text-ghost">
-              {entry.catalogueNumber}
-            </span>
+            <CatalogueTag code={entry.catalogueNumber} />
             <StatusTag completeness="ready" scheduled={true} />
           </div>
         </div>
@@ -1026,9 +1015,7 @@ function SeedCard({ seed, onEdit }: { seed: SeedType; onEdit: () => void }) {
         <div className="flex items-start justify-between gap-2">
           <span className="text-[10px] font-mono text-muted">{label.name}</span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono text-ghost">
-              {suggestedCat}
-            </span>
+            <CatalogueTag code={suggestedCat} />
             <StatusTag completeness="draft" scheduled={false} />
           </div>
         </div>
