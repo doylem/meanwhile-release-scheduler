@@ -81,7 +81,7 @@ export function useSharedReleases(): {
 } {
   const { connection } = useGithubConnection();
   const [releases, setReleases] = useState<LocalRelease[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const migrationDoneRef = useRef(false);
   const releasesRef = useRef<LocalRelease[]>([]);

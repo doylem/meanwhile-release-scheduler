@@ -576,61 +576,66 @@ function LandingPage({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
-          {releasesLoading && upcomingItems.length === 0 && (
-            <>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-wire/15 bg-surface overflow-hidden animate-pulse"
-                  style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)", minHeight: 213 }}
-                >
-                  <div className="h-0.5 w-full bg-wire/10" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-3 w-24 rounded bg-wire/15" />
-                    <div className="h-6 w-36 rounded bg-wire/12" />
-                    <div className="h-4 w-20 rounded bg-wire/10" />
+          {releasesLoading ? (
+            [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-wire/15 bg-surface overflow-hidden animate-pulse"
+                style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)", minHeight: 213 }}
+              >
+                <div className="h-0.5 w-full bg-wire/10" />
+                <div className="p-5 space-y-4">
+                  <div className="flex justify-between">
+                    <div className="h-2.5 w-32 rounded bg-wire/15" />
+                    <div className="h-5 w-20 rounded-full bg-wire/12" />
                   </div>
+                  <div className="h-6 w-40 rounded bg-wire/12" />
+                  <div className="h-4 w-28 rounded bg-wire/10" />
+                  <div className="h-4 w-16 rounded bg-wire/8 mt-2" />
+                  <div className="h-8 w-full rounded-lg bg-wire/10 mt-4" />
                 </div>
-              ))}
+              </div>
+            ))
+          ) : (
+            <>
+              {upcomingItems.map((item, i) => {
+                if (item.kind === "local") {
+                  return (
+                    <LocalReleaseCard
+                      key={item.local.id}
+                      local={item.local}
+                      manifestEntries={manifestEntries}
+                      coverArtUrl={releaseStates[item.local.input.catalogueNumber]?.coverArtUrl}
+                      onEdit={() => onEditLocal(item.local)}
+                      onActions={() => onActionsLocal(item.local)}
+                      onDelete={() => onDeleteLocal(item.local.id)}
+                    />
+                  );
+                }
+                if (item.kind === "manifest") {
+                  return (
+                    <ManifestOnlyCard
+                      key={item.entry.releaseId}
+                      entry={item.entry}
+                      coverArtUrl={releaseStates[item.entry.catalogueNumber]?.coverArtUrl}
+                      onActions={() => onActionsManifest(item.entry)}
+                    />
+                  );
+                }
+                return (
+                  <SeedCard
+                    key={i}
+                    seed={item.seed}
+                    onEdit={() => onEditSeed(item.seed)}
+                  />
+                );
+              })}
+              <NewReleaseCard onClick={onNewRelease} />
             </>
           )}
-          {upcomingItems.map((item, i) => {
-            if (item.kind === "local") {
-              return (
-                <LocalReleaseCard
-                  key={item.local.id}
-                  local={item.local}
-                  manifestEntries={manifestEntries}
-                  coverArtUrl={releaseStates[item.local.input.catalogueNumber]?.coverArtUrl}
-                  onEdit={() => onEditLocal(item.local)}
-                  onActions={() => onActionsLocal(item.local)}
-                  onDelete={() => onDeleteLocal(item.local.id)}
-                />
-              );
-            }
-            if (item.kind === "manifest") {
-              return (
-                <ManifestOnlyCard
-                  key={item.entry.releaseId}
-                  entry={item.entry}
-                  coverArtUrl={releaseStates[item.entry.catalogueNumber]?.coverArtUrl}
-                  onActions={() => onActionsManifest(item.entry)}
-                />
-              );
-            }
-            return (
-              <SeedCard
-                key={i}
-                seed={item.seed}
-                onEdit={() => onEditSeed(item.seed)}
-              />
-            );
-          })}
-
-          <NewReleaseCard onClick={onNewRelease} />
         </div>
 
-        {hasPast && (
+        {!releasesLoading && hasPast && (
           <div>
             <div className="mb-5">
               <p className="text-xs font-mono uppercase tracking-widest text-muted mb-1">
