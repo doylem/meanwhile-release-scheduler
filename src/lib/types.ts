@@ -27,6 +27,7 @@ export interface ScheduledTask {
   /** ISO date string YYYY-MM-DD in Australia/Melbourne local time. */
   dueDateISO: string;
   daysBeforeRelease: number;
+  startHour?: number;
 }
 
 export interface CalendarEventPlan {

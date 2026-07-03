@@ -42,10 +42,12 @@ export type TaskOwner = 'Gavin' | 'Matty' | 'James';
 export interface TaskRule {
   /** Identifier used for stable diffing when releases are moved/recreated. */
   id: string;
-  /** Days before the release date. 0 = day of release. */
+  /** Days before the release date. 0 = day of release, -1 = day after. */
   daysBeforeRelease: number;
   title: string;
   owner: TaskOwner;
+  /** Override the calendar event start hour (24h). Defaults to EVENT_TIME.startHour. */
+  startHour?: number;
 }
 
 /**
@@ -61,7 +63,8 @@ export const TASK_RULES: TaskRule[] = [
   { id: 'video-promos-due', daysBeforeRelease: 5, title: 'Video promos due', owner: 'Matty' },
   { id: 'teaser-1', daysBeforeRelease: 3, title: 'Post 1st video teaser', owner: 'Gavin' },
   { id: 'teaser-2', daysBeforeRelease: 1, title: 'Post 2nd video teaser', owner: 'Gavin' },
-  { id: 'release-announcement', daysBeforeRelease: 0, title: 'Post Banner / release announcement', owner: 'Gavin' },
+  { id: 'release-announcement', daysBeforeRelease: -1, title: 'Post Banner / release announcement', owner: 'Gavin', startHour: 12 },
+  { id: 'soundcloud-upload', daysBeforeRelease: -1, title: 'Upload release to Soundcloud', owner: 'Gavin', startHour: 12 },
 ];
 
 /** Default timezone for all date math. Respects AEST/AEDT automatically. */

@@ -22,7 +22,8 @@ describe('task generation', () => {
     expect(byId['video-promos-due']!.dueDateISO).toBe('2026-07-12'); // 5 days before
     expect(byId['teaser-1']!.dueDateISO).toBe('2026-07-14'); // 3 days before
     expect(byId['teaser-2']!.dueDateISO).toBe('2026-07-16'); // 1 day before
-    expect(byId['release-announcement']!.dueDateISO).toBe('2026-07-17'); // day of release
+    expect(byId['release-announcement']!.dueDateISO).toBe('2026-07-18'); // day after release
+    expect(byId['soundcloud-upload']!.dueDateISO).toBe('2026-07-18'); // day after release
   });
 
   it('assigns the configured owner to each task', () => {
@@ -40,6 +41,16 @@ describe('task generation', () => {
     expect(times.timeZone).toBe('Australia/Melbourne');
     // July is AEST (+10:00) in Melbourne — confirms no hardcoded UTC offset drift.
     expect(times.startDateTime.endsWith('+10:00')).toBe(true);
+  });
+
+  it('uses the startHour override for tasks that specify one', () => {
+    const tasks = generateTasks('2026-07-17');
+    const byId = Object.fromEntries(tasks.map((t) => [t.id, t]));
+    expect(byId['release-announcement']!.startHour).toBe(12);
+    expect(byId['soundcloud-upload']!.startHour).toBe(12);
+    const times = buildEventTimes('2026-07-18', undefined, 12);
+    expect(times.startDateTime).toContain('T12:00:00');
+    expect(times.endDateTime).toContain('T12:15:00');
   });
 
   it('uses the AEDT offset for due dates that fall in daylight saving', () => {

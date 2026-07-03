@@ -70,6 +70,7 @@ export function generateTasks(releaseDateISO: string, zone: string = DEFAULT_TIM
       owner: rule.owner,
       dueDateISO: due.toISODate()!,
       daysBeforeRelease: rule.daysBeforeRelease,
+      ...(rule.startHour !== undefined ? { startHour: rule.startHour } : {}),
     };
   });
 }
@@ -82,11 +83,13 @@ export function generateTasks(releaseDateISO: string, zone: string = DEFAULT_TIM
  */
 export function buildEventTimes(
   dueDateISO: string,
-  zone: string = DEFAULT_TIMEZONE
+  zone: string = DEFAULT_TIMEZONE,
+  startHourOverride?: number
 ): { startDateTime: string; endDateTime: string; timeZone: string } {
   const day = parseLocalDate(dueDateISO, zone);
-  const start = day.set({ hour: EVENT_TIME.startHour, minute: EVENT_TIME.startMinute, second: 0, millisecond: 0 });
-  const end = day.set({ hour: EVENT_TIME.endHour, minute: EVENT_TIME.endMinute, second: 0, millisecond: 0 });
+  const hour = startHourOverride ?? EVENT_TIME.startHour;
+  const start = day.set({ hour, minute: EVENT_TIME.startMinute, second: 0, millisecond: 0 });
+  const end = start.plus({ minutes: 15 });
   return {
     startDateTime: start.toISO()!,
     endDateTime: end.toISO()!,

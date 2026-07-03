@@ -70,7 +70,7 @@ export function buildEventResource(
   reminderSettings: ReminderSettings,
   timeZone: string
 ): calendar_v3.Schema$Event {
-  const times = buildEventTimes(task.dueDateISO, timeZone);
+  const times = buildEventTimes(task.dueDateISO, timeZone, task.startHour);
   return {
     summary: buildEventTitle(release, task),
     description: buildEventDescription(release, task),
