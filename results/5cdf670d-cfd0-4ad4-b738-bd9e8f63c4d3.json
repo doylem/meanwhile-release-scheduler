@@ -1,0 +1,15 @@
+{
+  "requestId": "5cdf670d-cfd0-4ad4-b738-bd9e8f63c4d3",
+  "completedAt": "2026-07-03T07:58:30.029Z",
+  "ok": true,
+  "releaseId": "mw090-30402a22b43d",
+  "mode": "create-missing",
+  "existingEventCountBeforeRun": 9,
+  "events": [
+    {
+      "taskId": "soundcloud-upload",
+      "eventId": "arq7n24rqu3uk53u3qmuppe79g",
+      "htmlLink": "https://www.google.com/calendar/event?eid=YXJxN24yNHJxdTN1azUzdTNxbXVwcGU3OWcgbWVhbndoaWxlcmVjQG0"
+    }
+  ]
+}
