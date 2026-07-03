@@ -39,10 +39,6 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
-          GAVIN_EMAIL: ${{ secrets.GAVIN_EMAIL }}
-          MATTY_EMAIL: ${{ secrets.MATTY_EMAIL }}
-          JAMES_EMAIL: ${{ secrets.JAMES_EMAIL }}
-          ATTENDEE_EMAILS: ${{ secrets.ATTENDEE_EMAILS }}
         run: npx tsx scripts/create-release.ts
 
       - name: Publish result to results branch

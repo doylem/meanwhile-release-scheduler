@@ -64,29 +64,6 @@ export function buildReminders(settings: ReminderSettings): calendar_v3.Schema$E
   return { useDefault: false, overrides };
 }
 
-export function getConfiguredAttendees(): { email: string }[] {
-  // Configurable via env, never hardcoded. Comma-separated list takes
-  // priority if set; otherwise falls back to the three named env vars.
-  // (Read here only for the server-side build step; in the browser these
-  // env vars are simply undefined, which is fine — attendee assignment
-  // happens when the GitHub Actions script builds the real event resource.)
-  const csv = typeof process !== 'undefined' ? process.env.ATTENDEE_EMAILS : undefined;
-  if (csv) {
-    return csv
-      .split(',')
-      .map((e) => e.trim())
-      .filter(Boolean)
-      .map((email) => ({ email }));
-  }
-  const named =
-    typeof process !== 'undefined'
-      ? [process.env.GAVIN_EMAIL, process.env.MATTY_EMAIL, process.env.JAMES_EMAIL].filter(
-          (e): e is string => Boolean(e)
-        )
-      : [];
-  return named.map((email) => ({ email }));
-}
-
 export function buildEventResource(
   release: Release,
   task: ScheduledTask,
@@ -99,7 +76,6 @@ export function buildEventResource(
     description: buildEventDescription(release, task),
     start: { dateTime: times.startDateTime, timeZone: times.timeZone },
     end: { dateTime: times.endDateTime, timeZone: times.timeZone },
-    attendees: getConfiguredAttendees(),
     reminders: buildReminders(reminderSettings),
     extendedProperties: {
       private: {

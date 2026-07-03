@@ -11,7 +11,6 @@ export {
   buildEventTitle,
   buildEventDescription,
   buildReminders,
-  getConfiguredAttendees,
   buildEventResource,
   type ReminderSettings,
 } from './calendarEvents';
