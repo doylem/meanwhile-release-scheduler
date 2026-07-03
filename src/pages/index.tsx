@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { GithubConnectGate } from "../components/GithubConnectGate";
 import { PasswordGate } from "../components/PasswordGate";
 import { ReleaseDetail } from "../components/ReleaseDetail";
@@ -493,11 +494,12 @@ function LandingPage({
 
       <header className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-wire/15">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/meanwhile_RGB_logo_2023.png"
             alt="Meanwhile"
-            className="h-6 w-auto object-contain"
+            height={32}
+            width={96}
+            className="h-8 w-auto object-contain"
           />
           <span className="text-muted text-sm font-mono">
             / release scheduler
