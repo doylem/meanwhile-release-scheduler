@@ -16,9 +16,10 @@ interface CreateReleaseResult {
   events?: { taskId: string; eventId: string; htmlLink?: string }[];
 }
 
-interface DropboxResult extends DropboxAssetStatus {
+interface DropboxResult extends Partial<DropboxAssetStatus> {
   ok: boolean;
   error?: string;
+  dryRun?: boolean;
   sharedLinks?: Partial<Record<DropboxAssetCategory, string>>;
 }
 
@@ -182,7 +183,9 @@ export function ReleaseDetail({
 
         {dropbox.result && (
           <div className="space-y-3 mt-1">
-            {dropbox.result.folderFound ? (
+            {dropbox.result.dryRun ? (
+              <p className="text-xs font-mono text-gold">✓ Dry run — no Dropbox connection made</p>
+            ) : dropbox.result.folderFound ? (
               <details>
                 <summary className="text-xs font-mono text-lime cursor-pointer select-none">
                   ✓ Release folder found
@@ -193,16 +196,18 @@ export function ReleaseDetail({
               <p className="text-xs font-mono text-signal">✗ Release folder not found</p>
             )}
 
-            <ul className="grid grid-cols-2 gap-1.5">
-              {Object.entries(dropbox.result.categories).map(([key, info]) => (
-                <li key={key} className="text-xs font-mono">
-                  <span className="text-muted">{CATEGORY_LABELS[key as DropboxAssetCategory]}: </span>
-                  <span className={info.found ? 'text-lime' : 'text-signal'}>
-                    {info.found ? `✓ ${info.fileCount} file${info.fileCount === 1 ? '' : 's'}` : 'Missing'}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {dropbox.result.categories && (
+              <ul className="grid grid-cols-2 gap-1.5">
+                {Object.entries(dropbox.result.categories).map(([key, info]) => (
+                  <li key={key} className="text-xs font-mono">
+                    <span className="text-muted">{CATEGORY_LABELS[key as DropboxAssetCategory]}: </span>
+                    <span className={info.found ? 'text-lime' : 'text-signal'}>
+                      {info.found ? `✓ ${info.fileCount} file${info.fileCount === 1 ? '' : 's'}` : 'Missing'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <MiniField label="Masters link override">
