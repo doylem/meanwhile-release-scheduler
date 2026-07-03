@@ -18,7 +18,10 @@ interface CheckDropboxPayload {
 async function main() {
   const requestId = requireEnv('REQUEST_ID');
   const payload: CheckDropboxPayload = JSON.parse(requireEnv('PAYLOAD_JSON'));
-  const basePath = requireEnv('DROPBOX_BASE_PATH');
+  const isHorizons = payload.catalogueNumber.toUpperCase().startsWith('MWH');
+  const basePath = isHorizons
+    ? requireEnv('DROPBOX_BASE_PATH_HORIZONS')
+    : requireEnv('DROPBOX_BASE_PATH_RECORDINGS');
   const dryRun = isDryRun();
 
   if (dryRun) {

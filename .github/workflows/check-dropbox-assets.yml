@@ -36,7 +36,8 @@ jobs:
           DROPBOX_CLIENT_ID: ${{ secrets.DROPBOX_CLIENT_ID }}
           DROPBOX_CLIENT_SECRET: ${{ secrets.DROPBOX_CLIENT_SECRET }}
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          DROPBOX_BASE_PATH: ${{ secrets.DROPBOX_BASE_PATH }}
+          DROPBOX_BASE_PATH_RECORDINGS: ${{ secrets.DROPBOX_BASE_PATH_RECORDINGS }}
+          DROPBOX_BASE_PATH_HORIZONS: ${{ secrets.DROPBOX_BASE_PATH_HORIZONS }}
         run: npx tsx scripts/check-dropbox.ts
 
       - name: Publish result to results branch
