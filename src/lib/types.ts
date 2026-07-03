@@ -75,6 +75,14 @@ export interface EmailDraft {
   missingAssets: string[];
 }
 
+export interface ReleaseState {
+  catalogueNumber: string;
+  coverArtUrl?: string;
+  dropbox?: { checkedAt: string; folderFound: boolean };
+  calendar?: { scheduledAt: string; eventCount: number };
+  email?: { draftedAt: string };
+}
+
 export interface ManifestEntry {
   releaseId: string;
   label: LabelKey;

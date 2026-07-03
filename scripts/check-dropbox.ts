@@ -10,6 +10,7 @@ import { checkReleaseAssets } from '../src/lib/dropbox';
 import { getDropboxAccessToken } from './lib/dropboxAuth';
 import { isDryRun, requireEnv } from './lib/env';
 import { writeResult } from './lib/result';
+import { writePendingState } from './lib/state';
 
 interface CheckDropboxPayload {
   catalogueNumber: string;
@@ -49,6 +50,12 @@ async function main() {
     ok: true,
     catalogueNumber: payload.catalogueNumber,
     ...status,
+  });
+
+  writePendingState({
+    catalogueNumber: payload.catalogueNumber,
+    coverArtUrl: status.coverArtUrl,
+    dropbox: { checkedAt: new Date().toISOString(), folderFound: status.folderFound },
   });
 }
 

@@ -28,6 +28,9 @@ runs:
         if [ -f "releases/pending.json" ]; then
           cp "releases/pending.json" "/tmp/manifest-pending.json"
         fi
+        if [ -f "releases/pending-state.json" ]; then
+          cp "releases/pending-state.json" "/tmp/state-pending.json"
+        fi
 
         git fetch origin results:results 2>/dev/null || true
 
@@ -56,6 +59,20 @@ runs:
           fi
           cp /tmp/manifest-merged.json releases/manifest.json
           git add "releases/manifest.json"
+        fi
+
+        # Merge pending state into state/{catalogueNumber}.json if present
+        if [ -f "/tmp/state-pending.json" ]; then
+          mkdir -p state
+          CAT=$(jq -r '.catalogueNumber' /tmp/state-pending.json)
+          STATE_FILE="state/${CAT}.json"
+          if [ -f "$STATE_FILE" ]; then
+            jq -s '.[0] * .[1]' "$STATE_FILE" /tmp/state-pending.json > /tmp/state-merged.json
+          else
+            cp /tmp/state-pending.json /tmp/state-merged.json
+          fi
+          cp /tmp/state-merged.json "$STATE_FILE"
+          git add "$STATE_FILE"
         fi
 
         git commit -m "Result for ${REQUEST_ID}"

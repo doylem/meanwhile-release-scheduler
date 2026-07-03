@@ -11,12 +11,14 @@ import { createGmailDraft, sendGmailDraft } from '../src/lib/gmail';
 import { buildRelease } from '../src/lib/release';
 import { googleAuthFromEnv, isDryRun, optionalEnv, requireEnv } from './lib/env';
 import { writeResult } from './lib/result';
-import type { ReleaseInput } from '../src/lib/types';
+import { writePendingState } from './lib/state';
+import type { EmailDraft, ReleaseInput } from '../src/lib/types';
 
 interface GenerateEmailPayload {
   release: ReleaseInput;
   mastersLink?: string;
   artworkLink?: string;
+  bodyOverride?: string;
   recipientOverride?: string;
   /** If set, this run only sends an already-created draft — it does not regenerate or recreate anything. */
   sendDraftId?: string;
@@ -46,16 +48,23 @@ async function main() {
     recipient
   );
 
+  // Allow the frontend to pass an edited body; merge it into the draft before creating
+  const finalDraft: EmailDraft = payload.bodyOverride ? { ...draft, body: payload.bodyOverride } : draft;
+
   if (dryRun) {
-    writeResult(requestId, { ok: true, dryRun: true, draft });
-    console.log('[DRY RUN] Email draft body:\n', draft.body);
+    writeResult(requestId, { ok: true, dryRun: true, draft: finalDraft });
+    console.log('[DRY RUN] Email draft body:\n', finalDraft.body);
     return;
   }
 
   const auth = googleAuthFromEnv();
-  const { draftId } = await createGmailDraft(auth, draft);
+  const { draftId } = await createGmailDraft(auth, finalDraft);
 
-  writeResult(requestId, { ok: true, draftId, draft });
+  writeResult(requestId, { ok: true, draftId, draft: finalDraft });
+  writePendingState({
+    catalogueNumber: release.catalogueNumber,
+    email: { draftedAt: new Date().toISOString() },
+  });
 }
 
 main().catch((err) => {

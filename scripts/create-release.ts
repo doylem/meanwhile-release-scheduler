@@ -13,6 +13,7 @@ import { buildEventResource, createEvent, deleteEvent, findEventsByReleaseId, up
 import { calendarConfigFromEnv, isDryRun, requireEnv } from './lib/env';
 import { writeResult } from './lib/result';
 import { writePendingManifestEntry } from './lib/manifest';
+import { writePendingState } from './lib/state';
 import { buildRelease } from '../src/lib/release';
 import { NotAFridayError } from '../src/lib/scheduling';
 import type { ReleaseInput } from '../src/lib/types';
@@ -119,6 +120,10 @@ async function main() {
   // on the results branch. Only written for real (non-dry-run) successful runs so the
   // manifest reflects actual scheduled releases.
   writePendingManifestEntry(release);
+  writePendingState({
+    catalogueNumber: release.catalogueNumber,
+    calendar: { scheduledAt: new Date().toISOString(), eventCount: createdEvents.length },
+  });
 }
 
 main().catch((err) => {

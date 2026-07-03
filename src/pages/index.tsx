@@ -14,6 +14,8 @@ import {
   useReleaseManifest,
   type ManifestEntry,
 } from "../lib/useReleaseManifest";
+import { useReleaseStates } from "../lib/useReleaseStates";
+import type { ReleaseState } from "../lib/types";
 import {
   deleteLocalRelease,
   generateLocalId,
@@ -93,6 +95,15 @@ function App() {
     error: manifestError,
     refresh: refreshManifest,
   } = useReleaseManifest();
+
+  const allCatalogueNumbers = useMemo(() => {
+    const cats = new Set<string>();
+    localReleases.forEach((r) => { if (r.input.catalogueNumber) cats.add(r.input.catalogueNumber); });
+    (manifestEntries ?? []).forEach((m) => cats.add(m.catalogueNumber));
+    return [...cats];
+  }, [localReleases, manifestEntries]);
+
+  const { states: releaseStates, refresh: refreshStates } = useReleaseStates(allCatalogueNumbers);
 
   const handleAutoSave = useCallback((input: ReleaseInput) => {
     const id = currentLocalIdRef.current;
@@ -238,6 +249,7 @@ function App() {
         manifestEntries={manifestEntries}
         manifestLoading={manifestLoading}
         manifestError={manifestError}
+        releaseStates={releaseStates}
         onNewRelease={openFormNew}
         onEditLocal={openFormEdit}
         onActionsLocal={openActionsLocal}
@@ -310,6 +322,8 @@ function App() {
               <ReleaseDetail
                 release={release}
                 dryRun={dryRun}
+                releaseState={releaseStates[release.catalogueNumber]}
+                onStateChange={refreshStates}
                 onScheduled={handleScheduled}
                 onReleaseMoved={(r) => {
                   setRelease(r);
@@ -345,6 +359,7 @@ function LandingPage({
   manifestEntries,
   manifestLoading,
   manifestError,
+  releaseStates,
   onNewRelease,
   onEditLocal,
   onActionsLocal,
@@ -359,6 +374,7 @@ function LandingPage({
   manifestEntries: ManifestEntry[] | null;
   manifestLoading: boolean;
   manifestError: string | null;
+  releaseStates: Record<string, ReleaseState>;
   onNewRelease: () => void;
   onEditLocal: (local: LocalRelease) => void;
   onActionsLocal: (local: LocalRelease) => void;
@@ -572,6 +588,7 @@ function LandingPage({
                   key={item.local.id}
                   local={item.local}
                   manifestEntries={manifestEntries}
+                  coverArtUrl={releaseStates[item.local.input.catalogueNumber]?.coverArtUrl}
                   onEdit={() => onEditLocal(item.local)}
                   onActions={() => onActionsLocal(item.local)}
                   onDelete={() => onDeleteLocal(item.local.id)}
@@ -583,6 +600,7 @@ function LandingPage({
                 <ManifestOnlyCard
                   key={item.entry.releaseId}
                   entry={item.entry}
+                  coverArtUrl={releaseStates[item.entry.catalogueNumber]?.coverArtUrl}
                   onActions={() => onActionsManifest(item.entry)}
                 />
               );
@@ -615,6 +633,7 @@ function LandingPage({
                   key={local.id}
                   local={local}
                   manifestEntries={manifestEntries}
+                  coverArtUrl={releaseStates[local.input.catalogueNumber]?.coverArtUrl}
                   onEdit={() => onEditLocal(local)}
                   onActions={() => onActionsLocal(local)}
                   onDelete={() => onDeleteLocal(local.id)}
@@ -625,6 +644,7 @@ function LandingPage({
                 <ManifestOnlyCard
                   key={entry.releaseId}
                   entry={entry}
+                  coverArtUrl={releaseStates[entry.catalogueNumber]?.coverArtUrl}
                   onActions={() => onActionsManifest(entry)}
                   isPast
                 />
@@ -681,6 +701,7 @@ function StatusTag({
 function LocalReleaseCard({
   local,
   manifestEntries,
+  coverArtUrl,
   onEdit,
   onActions,
   onDelete,
@@ -688,6 +709,7 @@ function LocalReleaseCard({
 }: {
   local: LocalRelease;
   manifestEntries: ManifestEntry[] | null;
+  coverArtUrl?: string;
   onEdit: () => void;
   onActions: () => void;
   onDelete: () => void;
@@ -745,19 +767,25 @@ function LocalReleaseCard({
           </div>
         </div>
 
-        <div className="min-h-[52px]">
-          <p className="font-mono font-semibold text-snow text-xl leading-tight">
-            {input.artist || (
-              <span className="text-ghost italic text-base">No artist</span>
-            )}
-          </p>
-          <p className="text-sm mt-0.5 font-mono">
-            {input.releaseTitle ? (
-              <span className="text-muted">{input.releaseTitle}</span>
-            ) : (
-              <span className="text-ghost/50 italic">No title yet</span>
-            )}
-          </p>
+        <div className="min-h-[52px] flex gap-3 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="font-mono font-semibold text-snow text-xl leading-tight">
+              {input.artist || (
+                <span className="text-ghost italic text-base">No artist</span>
+              )}
+            </p>
+            <p className="text-sm mt-0.5 font-mono">
+              {input.releaseTitle ? (
+                <span className="text-muted">{input.releaseTitle}</span>
+              ) : (
+                <span className="text-ghost/50 italic">No title yet</span>
+              )}
+            </p>
+          </div>
+          {coverArtUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverArtUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20" />
+          )}
         </div>
 
         <div className="min-h-[32px]">
@@ -847,10 +875,12 @@ function LocalReleaseCard({
 
 function ManifestOnlyCard({
   entry,
+  coverArtUrl,
   onActions,
   isPast = false,
 }: {
   entry: ManifestEntry;
+  coverArtUrl?: string;
   onActions: () => void;
   isPast?: boolean;
 }) {
@@ -886,16 +916,22 @@ function ManifestOnlyCard({
           </div>
         </div>
 
-        <div className="min-h-[52px]">
-          <p className="font-mono font-semibold text-snow text-xl leading-tight">
-            {entry.artist}
-          </p>
-          {entry.releaseTitle ? (
-            <p className="text-sm text-muted mt-0.5 font-mono">
-              {entry.releaseTitle}
+        <div className="min-h-[52px] flex gap-3 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="font-mono font-semibold text-snow text-xl leading-tight">
+              {entry.artist}
             </p>
-          ) : (
-            <p className="text-sm text-ghost/50 mt-0.5 italic">—</p>
+            {entry.releaseTitle ? (
+              <p className="text-sm text-muted mt-0.5 font-mono">
+                {entry.releaseTitle}
+              </p>
+            ) : (
+              <p className="text-sm text-ghost/50 mt-0.5 italic">—</p>
+            )}
+          </div>
+          {coverArtUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverArtUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20" />
           )}
         </div>
 

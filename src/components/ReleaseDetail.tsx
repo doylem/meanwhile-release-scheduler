@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LABELS } from '../../config/labels.config';
 import { generateEmailDraft } from '../lib/email';
 import { useWorkflowAction } from '../lib/useWorkflowAction';
 import { isFriday, nextFriday } from '../lib/scheduling';
-import type { DropboxAssetCategory, DropboxAssetStatus, Release } from '../lib/types';
+import type { DropboxAssetCategory, DropboxAssetStatus, Release, ReleaseState } from '../lib/types';
 
 type DuplicateMode = 'cancel' | 'create-missing' | 'recreate-all' | 'update-existing';
 
@@ -26,6 +26,7 @@ interface DropboxResult extends Partial<DropboxAssetStatus> {
 interface EmailResult {
   ok: boolean;
   error?: string;
+  dryRun?: boolean;
   draftId?: string;
   sent?: boolean;
   draft?: { subject: string; body: string; recipient: string };
@@ -52,13 +53,17 @@ type SectionKey = 'dropbox' | 'calendar' | 'email' | 'move';
 
 export function ReleaseDetail({
   release,
+  releaseState,
   onReleaseMoved,
   onScheduled,
+  onStateChange,
   dryRun,
 }: {
   release: Release;
+  releaseState?: ReleaseState;
   onReleaseMoved: (r: Release) => void;
   onScheduled?: () => void;
+  onStateChange?: () => void;
   dryRun: boolean;
 }) {
   const label = LABELS[release.label];
@@ -80,18 +85,38 @@ export function ReleaseDetail({
   const artworkLink = artworkLinkOverride || dropbox.result?.sharedLinks?.artwork;
   const emailPreview = generateEmailDraft({ release, mastersLink, artworkLink });
 
+  // Editable email body — auto-updates when Dropbox links first resolve, stays put after manual edits
+  const [emailBody, setEmailBody] = useState(emailPreview.body);
+  const [emailBodyEdited, setEmailBodyEdited] = useState(false);
+  const prevLinksRef = useRef({ mastersLink, artworkLink });
+  useEffect(() => {
+    const prev = prevLinksRef.current;
+    if (!emailBodyEdited && (prev.mastersLink !== mastersLink || prev.artworkLink !== artworkLink)) {
+      setEmailBody(generateEmailDraft({ release, mastersLink, artworkLink }).body);
+    }
+    prevLinksRef.current = { mastersLink, artworkLink };
+  }, [mastersLink, artworkLink, release, emailBodyEdited]);
+
   const dropboxDone = Boolean(dropbox.result?.ok);
   const calendarDone = Boolean(calendar.result?.ok && !calendar.result.cancelled);
   const emailDone = Boolean(email.result?.sent);
 
-  // Auto-progress: Dropbox done → open calendar
+  // Auto-progress: Dropbox done → open calendar; notify parent to refresh state
   useEffect(() => {
-    if (dropbox.result?.ok) setOpenSection('calendar');
+    if (dropbox.result?.ok) {
+      setOpenSection('calendar');
+      if (!dropbox.result.dryRun) onStateChange?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropbox.result]);
 
-  // Auto-progress: Calendar events created → open email
+  // Auto-progress: Calendar events created → open email; notify parent to refresh state
   useEffect(() => {
-    if (calendar.result?.ok && !calendar.result.cancelled) setOpenSection('email');
+    if (calendar.result?.ok && !calendar.result.cancelled) {
+      setOpenSection('email');
+      if (!calendar.result.dryRun) onStateChange?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendar.result]);
 
   // Notify parent when calendar events are successfully created
@@ -99,6 +124,12 @@ export function ReleaseDetail({
     if (calendarDone) onScheduled?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarDone]);
+
+  // Notify parent when email is drafted
+  useEffect(() => {
+    if (email.result?.draftId && !email.result.dryRun) onStateChange?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email.result]);
 
   function toggle(section: SectionKey) {
     setOpenSection((prev) => (prev === section ? 'dropbox' : section));
@@ -128,13 +159,43 @@ export function ReleaseDetail({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="rounded-xl border border-wire/20 bg-elevated/40 px-6 py-5">
-        <p className="font-mono font-semibold text-snow text-lg">
-          {label.shortCode} {release.catalogueNumber} — {release.artist}
-        </p>
-        <p className="text-sm font-mono text-muted mt-1">
-          {release.releaseTitle} · {formatDate(release.releaseDateISO)}
-        </p>
+      <div className="rounded-xl border border-wire/20 bg-elevated/40 px-6 py-5 flex gap-4 items-start">
+        <div className="flex-1 min-w-0">
+          <p className="font-mono font-semibold text-snow text-lg">
+            {label.shortCode} {release.catalogueNumber} — {release.artist}
+          </p>
+          <p className="text-sm font-mono text-muted mt-1">
+            {release.releaseTitle} · {formatDate(release.releaseDateISO)}
+          </p>
+          {/* Persistent history from state file */}
+          {releaseState && (releaseState.dropbox || releaseState.calendar || releaseState.email) && (
+            <div className="flex gap-2 flex-wrap mt-3">
+              {releaseState.dropbox && (
+                <span className="text-[10px] font-mono text-lime/80 bg-lime/8 border border-lime/20 rounded-full px-2.5 py-1">
+                  ✓ Assets checked {shortDate(releaseState.dropbox.checkedAt)}
+                </span>
+              )}
+              {releaseState.calendar && (
+                <span className="text-[10px] font-mono text-cyan/80 bg-cyan/8 border border-cyan/20 rounded-full px-2.5 py-1">
+                  ✓ Scheduled {shortDate(releaseState.calendar.scheduledAt)} · {releaseState.calendar.eventCount} events
+                </span>
+              )}
+              {releaseState.email && (
+                <span className="text-[10px] font-mono text-violet-400/80 bg-violet-400/8 border border-violet-400/20 rounded-full px-2.5 py-1">
+                  ✓ Email drafted {shortDate(releaseState.email.draftedAt)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        {releaseState?.coverArtUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={releaseState.coverArtUrl}
+            alt="Cover art"
+            className="w-20 h-20 rounded-xl object-cover flex-shrink-0 border border-wire/20"
+          />
+        )}
       </div>
 
       {/* Step progress */}
@@ -313,74 +374,78 @@ export function ReleaseDetail({
         open={openSection === 'email'}
         onToggle={() => toggle('email')}
       >
-        <div className="space-y-4">
-          <PrimaryButton
-            loading={email.status === 'waiting' || email.status === 'dispatching'}
-            onClick={() => {
-              setConfirmSend(false);
-              email.run({ release, mastersLink, artworkLink }, { dryRun });
-            }}
-          >
-            {email.status === 'waiting' || email.status === 'dispatching'
-              ? 'Creating draft…'
-              : email.result?.draftId
-              ? 'Regenerate draft'
-              : 'Generate email draft'}
-          </PrimaryButton>
+        <div className="space-y-3">
+          {/* Header fields */}
+          <div className="space-y-1 font-mono text-xs">
+            <p><span className="text-muted">To: </span><span className="text-snow/80">{emailPreview.recipient}</span></p>
+            <p><span className="text-muted">Subject: </span><span className="text-snow/80">{emailPreview.subject}</span></p>
+          </div>
 
-          {email.result?.draftId && (
-            <div className="rounded-lg border border-wire/15 bg-void/40 p-4 space-y-2 font-mono text-xs">
-              <p className="text-xs font-mono uppercase tracking-wider text-muted mb-3">
-                Email preview — not sent yet
-              </p>
-              <p>
-                <span className="text-muted">To: </span>
-                <span className="text-snow/80">{emailPreview.recipient}</span>
-              </p>
-              <p>
-                <span className="text-muted">Subject: </span>
-                <span className="text-snow/80">{emailPreview.subject}</span>
-              </p>
-              <pre className="whitespace-pre-wrap text-snow/55 mt-2 leading-relaxed">{emailPreview.body}</pre>
-              {emailPreview.missingAssets.length > 0 && (
-                <p className="text-gold">Missing: {emailPreview.missingAssets.join(', ')}</p>
-              )}
-            </div>
+          {/* Editable body */}
+          <div className="relative">
+            <textarea
+              value={emailBody}
+              onChange={(e) => { setEmailBody(e.target.value); setEmailBodyEdited(true); }}
+              rows={16}
+              className="w-full rounded-lg bg-depth/80 border border-wire/20 px-3 py-3 text-xs font-mono text-snow/80 placeholder:text-ghost focus:outline-none focus:border-cyan/40 transition-colors resize-y leading-relaxed"
+            />
+            {emailBodyEdited && (
+              <button
+                onClick={() => { setEmailBody(emailPreview.body); setEmailBodyEdited(false); }}
+                className="absolute top-2 right-2 text-[10px] font-mono text-ghost hover:text-muted transition-colors bg-depth/80 px-1.5 py-0.5 rounded"
+              >
+                ↺ Reset
+              </button>
+            )}
+          </div>
+
+          {emailPreview.missingAssets.length > 0 && (
+            <p className="text-xs font-mono text-gold">Missing assets: {emailPreview.missingAssets.join(', ')}</p>
           )}
 
-          {email.result?.draftId && !email.result.sent && (
-            <div>
-              {!confirmSend ? (
+          <div className="flex items-center gap-3 flex-wrap">
+            <PrimaryButton
+              loading={email.status === 'waiting' || email.status === 'dispatching'}
+              onClick={() => {
+                setConfirmSend(false);
+                email.run({ release, mastersLink, artworkLink, bodyOverride: emailBody }, { dryRun });
+              }}
+            >
+              {email.status === 'waiting' || email.status === 'dispatching'
+                ? 'Creating draft…'
+                : email.result?.draftId
+                ? 'Regenerate draft'
+                : 'Create Gmail draft'}
+            </PrimaryButton>
+
+            {email.result?.draftId && !email.result.sent && (
+              !confirmSend ? (
                 <SecondaryButton loading={false} onClick={() => setConfirmSend(true)}>
                   Send email
                 </SecondaryButton>
               ) : (
-                <div className="flex items-center gap-3 rounded-lg border border-signal/20 bg-signal/8 px-4 py-3 flex-wrap">
+                <div className="flex items-center gap-3 rounded-lg border border-signal/20 bg-signal/8 px-4 py-3 flex-wrap w-full">
                   <p className="text-sm font-mono text-snow/80 flex-1 min-w-0">
-                    Send to <span className="text-snow font-semibold">{emailPreview.recipient}</span>? This cannot be
-                    undone.
+                    Send to <span className="text-snow font-semibold">{emailPreview.recipient}</span>? This cannot be undone.
                   </p>
                   <button
-                    onClick={() => {
-                      setConfirmSend(false);
-                      email.run({ release, sendDraftId: email.result!.draftId }, { dryRun });
-                    }}
+                    onClick={() => { setConfirmSend(false); email.run({ release, sendDraftId: email.result!.draftId }, { dryRun }); }}
                     className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 transition-opacity"
                     style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
                   >
                     Yes, send
                   </button>
-                  <button
-                    onClick={() => setConfirmSend(false)}
-                    className="text-sm font-mono text-muted hover:text-snow transition-colors"
-                  >
+                  <button onClick={() => setConfirmSend(false)} className="text-sm font-mono text-muted hover:text-snow transition-colors">
                     Cancel
                   </button>
                 </div>
-              )}
-            </div>
-          )}
+              )
+            )}
+          </div>
 
+          {email.result?.draftId && (
+            <p className="text-xs font-mono text-lime">✓ Draft created in Gmail — open Gmail to review before sending.</p>
+          )}
           {email.error && <ErrorLine>{email.error}</ErrorLine>}
           {email.result?.sent && (
             <p className="text-sm font-mono text-lime">✓ Email sent to {emailPreview.recipient}.</p>
@@ -527,6 +592,11 @@ function ErrorLine({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   );
+}
+
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
 function formatDate(iso: string): string {
