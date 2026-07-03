@@ -165,6 +165,13 @@ function collectFilePaths(entries: files.MetadataReference[], folderPath: string
   }
 }
 
+/** Converts a Dropbox shared link to a directly embeddable image URL. */
+export function toDirectImageUrl(sharedLink: string): string {
+  if (sharedLink.includes('dl=0')) return sharedLink.replace('dl=0', 'raw=1');
+  const sep = sharedLink.includes('?') ? '&' : '?';
+  return `${sharedLink}${sep}raw=1`;
+}
+
 /** Creates a shared link for a path, or returns an existing one if already shared. */
 export async function getOrCreateSharedLink(config: DropboxClientConfig, path: string): Promise<string> {
   const dbx = createClient(config);
@@ -223,5 +230,20 @@ export async function checkReleaseAssets(
     }
   }
 
-  return { ...status, sharedLinks };
+  // Find the cover art file and get a direct embeddable URL for the thumbnail
+  let coverArtUrl: string | undefined;
+  const coverRelativePath = relativePaths.find((p) => {
+    const lower = p.toLowerCase();
+    return lower.includes('release pack/artwork/') && lower.includes('cover') && hasExtension(p, ASSET_EXTENSIONS.artwork);
+  });
+  if (coverRelativePath) {
+    try {
+      const link = await getOrCreateSharedLink(config, `${folderPath}/${coverRelativePath}`);
+      coverArtUrl = toDirectImageUrl(link);
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  return { ...status, coverArtUrl, sharedLinks };
 }

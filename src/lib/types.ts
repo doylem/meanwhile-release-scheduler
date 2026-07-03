@@ -56,6 +56,7 @@ export type DropboxAssetCategory =
 export interface DropboxAssetStatus {
   folderFound: boolean;
   folderPath?: string;
+  coverArtUrl?: string;
   categories: Record<DropboxAssetCategory, { found: boolean; sharedLink?: string; fileCount: number }>;
 }
 

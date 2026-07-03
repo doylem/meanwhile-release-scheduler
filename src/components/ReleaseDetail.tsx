@@ -197,16 +197,25 @@ export function ReleaseDetail({
             )}
 
             {dropbox.result.categories && (
-              <ul className="grid grid-cols-2 gap-1.5">
-                {Object.entries(dropbox.result.categories).map(([key, info]) => (
-                  <li key={key} className="text-xs font-mono">
-                    <span className="text-muted">{CATEGORY_LABELS[key as DropboxAssetCategory]}: </span>
-                    <span className={info.found ? 'text-lime' : 'text-signal'}>
-                      {info.found ? `✓ ${info.fileCount} file${info.fileCount === 1 ? '' : 's'}` : 'Missing'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex gap-4 items-start">
+                {dropbox.result.coverArtUrl && (
+                  <img
+                    src={dropbox.result.coverArtUrl}
+                    alt="Release cover"
+                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0 border border-wire/20"
+                  />
+                )}
+                <ul className="grid grid-cols-2 gap-1.5 flex-1">
+                  {Object.entries(dropbox.result.categories).map(([key, info]) => (
+                    <li key={key} className="text-xs font-mono">
+                      <span className="text-muted">{CATEGORY_LABELS[key as DropboxAssetCategory]}: </span>
+                      <span className={info.found ? 'text-lime' : 'text-signal'}>
+                        {info.found ? `✓ ${info.fileCount} file${info.fileCount === 1 ? '' : 's'}` : 'Missing'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-3 pt-1">
