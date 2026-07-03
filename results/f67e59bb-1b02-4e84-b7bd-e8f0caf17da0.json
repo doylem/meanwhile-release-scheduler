@@ -1,0 +1,55 @@
+{
+  "requestId": "f67e59bb-1b02-4e84-b7bd-e8f0caf17da0",
+  "completedAt": "2026-07-03T03:30:49.988Z",
+  "ok": true,
+  "releaseId": "mw090-30402a22b43d",
+  "mode": "create-missing",
+  "existingEventCountBeforeRun": 0,
+  "events": [
+    {
+      "taskId": "prepare-masters",
+      "eventId": "0cpnvu4atolpvvn7aha8kqknf8",
+      "htmlLink": "https://www.google.com/calendar/event?eid=MGNwbnZ1NGF0b2xwdnZuN2FoYThrcWtuZjggbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "artwork-ideation",
+      "eventId": "gpl1vl8t8so0fakvri9prm5gp8",
+      "htmlLink": "https://www.google.com/calendar/event?eid=Z3BsMXZsOHQ4c28wZmFrdnJpOXBybTVncDggbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "artwork-due",
+      "eventId": "fega8emum94cub15ssofj6v6r4",
+      "htmlLink": "https://www.google.com/calendar/event?eid=ZmVnYThlbXVtOTRjdWIxNXNzb2ZqNnY2cjQgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "liner-notes-due",
+      "eventId": "kdm5p7ps94dk58l4ccpj85l1go",
+      "htmlLink": "https://www.google.com/calendar/event?eid=a2RtNXA3cHM5NGRrNThsNGNjcGo4NWwxZ28gbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "inflyte-upload",
+      "eventId": "t7sim0dcojdfddnbq6a0o11hjs",
+      "htmlLink": "https://www.google.com/calendar/event?eid=dDdzaW0wZGNvamRmZGRuYnE2YTBvMTFoanMgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "video-promos-due",
+      "eventId": "57ndevbcavgqs3p8g067vueeq0",
+      "htmlLink": "https://www.google.com/calendar/event?eid=NTduZGV2YmNhdmdxczNwOGcwNjd2dWVlcTAgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "teaser-1",
+      "eventId": "ku65gr5t7gapak1cjp8dtvnnvo",
+      "htmlLink": "https://www.google.com/calendar/event?eid=a3U2NWdyNXQ3Z2FwYWsxY2pwOGR0dm5udm8gbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "teaser-2",
+      "eventId": "vt6tknm341bkfm8nbluvrschj8",
+      "htmlLink": "https://www.google.com/calendar/event?eid=dnQ2dGtubTM0MWJrZm04bmJsdXZyc2NoajggbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "release-announcement",
+      "eventId": "c48s1rviu8fhql7utt31b1ggis",
+      "htmlLink": "https://www.google.com/calendar/event?eid=YzQ4czFydml1OGZocWw3dXR0MzFiMWdnaXMgbWVhbndoaWxlcmVjQG0"
+    }
+  ]
+}
