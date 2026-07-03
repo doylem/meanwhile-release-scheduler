@@ -2,8 +2,8 @@ import type { LabelKey, TaskOwner } from '../../config/labels.config';
 
 export interface Track {
   title: string;
-  artist?: string;      // overrides release artist for this track (e.g. collab)
-  royaltyRate?: string; // overrides release-level default for this track
+  artist?: string;       // overrides release artist for this track (e.g. collab)
+  remixArtist?: string;  // set when this track is a remix (e.g. "Diego R")
 }
 
 export interface ReleaseInput {

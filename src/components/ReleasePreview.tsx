@@ -32,16 +32,12 @@ export function ReleasePreview({
             <p className="text-xs font-mono uppercase tracking-wider text-muted mb-3">Tracklist</p>
             <ol className="space-y-1">
               {release.tracks.map((t, i) => {
-                const trackArtist = t.artist;
-                const hasOwnRate = t.royaltyRate && t.royaltyRate !== release.royaltyRate;
+                const title = t.remixArtist ? `${t.title} (${t.remixArtist} Remix)` : t.title;
                 return (
                   <li key={i} className="text-sm text-snow/80 font-mono">
                     <span className="text-muted mr-2">{String(i + 1).padStart(2, '0')}.</span>
-                    {trackArtist && <span className="text-cyan/80">{trackArtist} — </span>}
-                    {t.title}
-                    {hasOwnRate && (
-                      <span className="text-ghost text-xs ml-2">({t.royaltyRate})</span>
-                    )}
+                    {t.artist && <span className="text-cyan/80">{t.artist} — </span>}
+                    {title}
                   </li>
                 );
               })}
@@ -94,7 +90,7 @@ export function ReleasePreview({
         <button
           onClick={onConfirm}
           className="rounded-xl px-6 py-2.5 text-sm font-medium text-depth hover:opacity-90 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
         >
           Continue to actions →
         </button>

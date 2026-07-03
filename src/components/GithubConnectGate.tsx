@@ -77,7 +77,7 @@ export function GithubConnectGate() {
           onClick={() => entry && setToken(entry)}
           disabled={!entry}
           className="rounded-lg px-5 py-2.5 text-sm font-medium text-depth disabled:opacity-40 transition-opacity hover:opacity-90 whitespace-nowrap"
-          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
         >
           Connect
         </button>

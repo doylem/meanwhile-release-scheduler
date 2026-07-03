@@ -78,7 +78,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
         <button
           type="submit"
           className="w-full rounded-xl py-3 font-medium text-depth hover:opacity-90 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
         >
           Enter
         </button>

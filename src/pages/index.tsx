@@ -1,16 +1,27 @@
-import { useEffect, useState } from 'react';
-import { GithubConnectGate } from '../components/GithubConnectGate';
-import { PasswordGate } from '../components/PasswordGate';
-import { ReleaseDetail } from '../components/ReleaseDetail';
-import { ReleaseForm } from '../components/ReleaseForm';
-import { ReleasePreview } from '../components/ReleasePreview';
-import { GithubConnectionProvider } from '../lib/githubConnection';
-import { buildRelease } from '../lib/release';
-import { NotAFridayError } from '../lib/scheduling';
-import { LABELS, SEED_RELEASES } from '../../config/labels.config';
-import { suggestNextCatalogueNumber } from '../lib/catalogue';
-import { useReleaseManifest, type ManifestEntry } from '../lib/useReleaseManifest';
-import type { Release, ReleaseInput } from '../lib/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GithubConnectGate } from "../components/GithubConnectGate";
+import { PasswordGate } from "../components/PasswordGate";
+import { ReleaseDetail } from "../components/ReleaseDetail";
+import { ReleaseForm } from "../components/ReleaseForm";
+import { ReleasePreview } from "../components/ReleasePreview";
+import { GithubConnectionProvider } from "../lib/githubConnection";
+import { buildRelease } from "../lib/release";
+import { isFriday, NotAFridayError } from "../lib/scheduling";
+import { LABELS, SEED_RELEASES } from "../../config/labels.config";
+import { suggestNextCatalogueNumber } from "../lib/catalogue";
+import {
+  useReleaseManifest,
+  type ManifestEntry,
+} from "../lib/useReleaseManifest";
+import {
+  deleteLocalRelease,
+  generateLocalId,
+  getLocalReleases,
+  markLocalReleaseScheduled,
+  saveLocalRelease,
+  type LocalRelease,
+} from "../lib/localReleases";
+import type { Release, ReleaseInput } from "../lib/types";
 
 export default function Home() {
   return (
@@ -22,45 +33,185 @@ export default function Home() {
   );
 }
 
-type ModalStep = 'form' | 'preview' | 'detail';
+type ModalStep = "form" | "preview" | "detail";
+type SeedType = (typeof SEED_RELEASES)[number];
+
+type GridItem =
+  | { kind: "local"; local: LocalRelease }
+  | { kind: "manifest"; entry: ManifestEntry }
+  | { kind: "seed"; seed: SeedType };
+
+function getCompleteness(input: ReleaseInput): "draft" | "ready" {
+  if (
+    input.artist.trim() &&
+    input.releaseTitle.trim() &&
+    input.catalogueNumber.trim() &&
+    input.releaseDateISO &&
+    isFriday(input.releaseDateISO) &&
+    input.tracks.some((t) => t.title.trim())
+  ) {
+    return "ready";
+  }
+  return "draft";
+}
+
+function isUpcoming(dateISO: string): boolean {
+  if (!dateISO) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const rel = new Date(y!, m! - 1, d!);
+  return rel >= today;
+}
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalStep, setModalStep] = useState<ModalStep>('form');
+  const [modalStep, setModalStep] = useState<ModalStep>("form");
   const [pendingInput, setPendingInput] = useState<ReleaseInput | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
+  // Empty initial state avoids SSR/client hydration mismatch; localStorage is loaded after mount
+  const [localReleases, setLocalReleases] = useState<LocalRelease[]>([]);
+  const [currentLocalId, setCurrentLocalId] = useState<string | null>(null);
+  const currentLocalIdRef = useRef<string | null>(null);
 
-  const { entries: manifestEntries, loading: manifestLoading, error: manifestError, refresh: refreshManifest } =
-    useReleaseManifest();
+  // Load from localStorage after hydration to avoid SSR mismatch
+  useEffect(() => {
+    setLocalReleases(getLocalReleases());
+  }, []);
 
-  function openForm(initial?: ReleaseInput) {
-    setPendingInput(initial ?? null);
+  function setLocalId(id: string | null) {
+    currentLocalIdRef.current = id;
+    setCurrentLocalId(id);
+  }
+
+  const {
+    entries: manifestEntries,
+    loading: manifestLoading,
+    error: manifestError,
+    refresh: refreshManifest,
+  } = useReleaseManifest();
+
+  const handleAutoSave = useCallback((input: ReleaseInput) => {
+    const id = currentLocalIdRef.current;
+    if (!id || !input.artist.trim()) return;
+    const existing = getLocalReleases().find((r) => r.id === id);
+    saveLocalRelease({
+      id,
+      savedAt: new Date().toISOString(),
+      input,
+      isScheduled: existing?.isScheduled ?? false,
+    });
+    setLocalReleases(getLocalReleases());
+  }, []);
+
+  const handleSaveDraft = useCallback(
+    (input: ReleaseInput) => {
+      handleAutoSave(input);
+      setModalOpen(false);
+    },
+    [handleAutoSave],
+  );
+
+  const handleDeleteLocal = useCallback((id: string) => {
+    deleteLocalRelease(id);
+    setLocalReleases(getLocalReleases());
+  }, []);
+
+  const handleScheduled = useCallback(() => {
+    const id = currentLocalIdRef.current;
+    if (!id) return;
+    markLocalReleaseScheduled(id);
+    setLocalReleases(getLocalReleases());
+  }, []);
+
+  function openFormNew() {
+    setLocalId(generateLocalId());
+    setPendingInput(null);
     setRelease(null);
     setFormError(null);
-    setModalStep('form');
+    setModalStep("form");
     setModalOpen(true);
   }
 
-  function openDetail(entry: ManifestEntry) {
-    const input: ReleaseInput = {
-      label: entry.label,
-      catalogueNumber: entry.catalogueNumber,
-      artist: entry.artist,
-      releaseTitle: entry.releaseTitle,
-      tracks: [],
-      releaseDateISO: entry.releaseDateISO,
-      royaltyRate: '',
-      royaltyNotes: '',
-      genre: '',
-    };
-    const built = buildRelease(input);
-    setRelease(built);
-    setPendingInput(input);
+  function openFormEdit(local: LocalRelease) {
+    setLocalId(local.id);
+    setPendingInput(local.input);
+    setRelease(null);
     setFormError(null);
-    setModalStep('detail');
+    setModalStep("form");
     setModalOpen(true);
+  }
+
+  function openFormSeed(seed: SeedType) {
+    // Reuse an existing local release for this seed if one already exists
+    const existing = getLocalReleases().find(
+      (r) =>
+        r.input.artist.toLowerCase() === seed.artist.toLowerCase() &&
+        r.input.releaseDateISO === seed.releaseDateISO,
+    );
+    if (existing) {
+      openFormEdit(existing);
+      return;
+    }
+    setLocalId(generateLocalId());
+    setPendingInput({
+      label: seed.label,
+      catalogueNumber: "",
+      artist: seed.artist,
+      releaseTitle: "",
+      tracks: [{ title: "" }],
+      releaseDateISO: seed.releaseDateISO,
+      royaltyRate: "50%",
+      royaltyNotes: "",
+      genre: "Progressive House",
+      notes: "",
+    });
+    setRelease(null);
+    setFormError(null);
+    setModalStep("form");
+    setModalOpen(true);
+  }
+
+  function openActionsLocal(local: LocalRelease) {
+    try {
+      const built = buildRelease(local.input);
+      setLocalId(local.id);
+      setRelease(built);
+      setPendingInput(local.input);
+      setFormError(null);
+      setModalStep("detail");
+      setModalOpen(true);
+    } catch (err) {
+      console.error("Failed to build release for actions:", err);
+    }
+  }
+
+  function openActionsManifest(entry: ManifestEntry) {
+    try {
+      const input: ReleaseInput = {
+        label: entry.label,
+        catalogueNumber: entry.catalogueNumber,
+        artist: entry.artist,
+        releaseTitle: entry.releaseTitle,
+        tracks: [],
+        releaseDateISO: entry.releaseDateISO,
+        royaltyRate: "",
+        royaltyNotes: "",
+        genre: "",
+        notes: "",
+      };
+      const built = buildRelease(input);
+      setLocalId(null);
+      setRelease(built);
+      setPendingInput(input);
+      setFormError(null);
+      setModalStep("detail");
+      setModalOpen(true);
+    } catch (err) {
+      console.error("Failed to build release from manifest:", err);
+    }
   }
 
   function handlePreview(input: ReleaseInput) {
@@ -69,7 +220,7 @@ function App() {
       setRelease(built);
       setPendingInput(input);
       setFormError(null);
-      setModalStep('preview');
+      setModalStep("preview");
     } catch (err) {
       if (err instanceof NotAFridayError) {
         setFormError(err.message);
@@ -79,49 +230,50 @@ function App() {
     }
   }
 
-  // Seed releases not yet in the manifest (matched by artist + date)
-  const scheduledKeys = new Set(
-    (manifestEntries ?? []).map((e) => `${e.artist}|${e.releaseDateISO}`)
-  );
-  const pendingSeeds = SEED_RELEASES.filter(
-    (s) => !scheduledKeys.has(`${s.artist}|${s.releaseDateISO}`)
-  );
-
   return (
     <>
       <LandingPage
+        localReleases={localReleases}
         manifestEntries={manifestEntries}
         manifestLoading={manifestLoading}
         manifestError={manifestError}
-        pendingSeeds={pendingSeeds}
-        onNewRelease={() => openForm()}
-        onOpenEntry={openDetail}
-        onSeedPick={(input) => openForm(input)}
+        onNewRelease={openFormNew}
+        onEditLocal={openFormEdit}
+        onActionsLocal={openActionsLocal}
+        onActionsManifest={openActionsManifest}
+        onEditSeed={openFormSeed}
+        onDeleteLocal={handleDeleteLocal}
         onRefresh={refreshManifest}
         dryRun={dryRun}
         setDryRun={setDryRun}
       />
 
       {modalOpen && (
-        <ReleaseModal onClose={() => setModalOpen(false)} wide={modalStep !== 'form'}>
+        <ReleaseModal
+          onClose={() => setModalOpen(false)}
+          wide={modalStep !== "form"}
+        >
           <div className="space-y-6">
             <div className="flex items-start justify-between border-b border-wire/15 pb-5">
               <div>
                 <h2 className="font-mono font-semibold text-snow text-lg tracking-tight">
-                  {modalStep === 'form' && 'Schedule a Release'}
-                  {modalStep === 'preview' && 'Preview Schedule'}
-                  {modalStep === 'detail' && 'Release Actions'}
+                  {modalStep === "form" && "Schedule a Release"}
+                  {modalStep === "preview" && "Preview Schedule"}
+                  {modalStep === "detail" && "Release Actions"}
                 </h2>
                 <p className="text-sm text-muted mt-1 font-mono">
-                  {modalStep === 'form' && 'Enter the release details below'}
-                  {modalStep === 'preview' && 'Review the generated task schedule before committing'}
-                  {modalStep === 'detail' &&
-                    (release ? `${release.artist} · ${formatDate(release.releaseDateISO)}` : '')}
+                  {modalStep === "form" && "Enter the release details below"}
+                  {modalStep === "preview" &&
+                    "Review the generated task schedule before committing"}
+                  {modalStep === "detail" &&
+                    (release
+                      ? `${release.artist} · ${formatDate(release.releaseDateISO)}`
+                      : "")}
                 </p>
               </div>
-              {modalStep === 'detail' && (
+              {modalStep === "detail" && (
                 <button
-                  onClick={() => openForm()}
+                  onClick={openFormNew}
                   className="text-sm font-mono text-muted hover:text-cyan transition-colors shrink-0 ml-4"
                 >
                   ← New release
@@ -129,33 +281,55 @@ function App() {
               )}
             </div>
 
-            {formError && modalStep === 'form' && (
+            {formError && modalStep === "form" && (
               <p className="text-signal text-sm bg-signal/10 border border-signal/20 rounded-lg px-4 py-3 font-mono">
                 {formError}
               </p>
             )}
 
-            {modalStep === 'form' && (
+            {modalStep === "form" && (
               <ReleaseForm
-                key={pendingInput ? `${pendingInput.artist}-${pendingInput.releaseDateISO}` : 'blank'}
+                key={currentLocalId ?? "blank"}
                 onPreview={handlePreview}
                 initial={pendingInput ?? undefined}
+                onAutoSave={handleAutoSave}
+                onSaveDraft={handleSaveDraft}
               />
             )}
 
-            {modalStep === 'preview' && release && (
+            {modalStep === "preview" && release && (
               <ReleasePreview
                 release={release}
-                onBack={() => setModalStep('form')}
-                onConfirm={() => setModalStep('detail')}
+                onBack={() => setModalStep("form")}
+                onConfirm={() => setModalStep("detail")}
               />
             )}
 
-            {modalStep === 'detail' && release && (
+            {modalStep === "detail" && release && (
               <ReleaseDetail
                 release={release}
                 dryRun={dryRun}
-                onReleaseMoved={(r) => { setRelease(r); refreshManifest(); }}
+                onScheduled={handleScheduled}
+                onReleaseMoved={(r) => {
+                  setRelease(r);
+                  refreshManifest();
+                  const id = currentLocalIdRef.current;
+                  if (id) {
+                    const existing = getLocalReleases().find(
+                      (lr) => lr.id === id,
+                    );
+                    if (existing) {
+                      saveLocalRelease({
+                        ...existing,
+                        input: {
+                          ...existing.input,
+                          releaseDateISO: r.releaseDateISO,
+                        },
+                      });
+                      setLocalReleases(getLocalReleases());
+                    }
+                  }
+                }}
               />
             )}
           </div>
@@ -166,29 +340,152 @@ function App() {
 }
 
 function LandingPage({
+  localReleases,
   manifestEntries,
   manifestLoading,
   manifestError,
-  pendingSeeds,
   onNewRelease,
-  onOpenEntry,
-  onSeedPick,
+  onEditLocal,
+  onActionsLocal,
+  onActionsManifest,
+  onEditSeed,
+  onDeleteLocal,
   onRefresh,
   dryRun,
   setDryRun,
 }: {
+  localReleases: LocalRelease[];
   manifestEntries: ManifestEntry[] | null;
   manifestLoading: boolean;
   manifestError: string | null;
-  pendingSeeds: typeof SEED_RELEASES;
   onNewRelease: () => void;
-  onOpenEntry: (entry: ManifestEntry) => void;
-  onSeedPick: (input: ReleaseInput) => void;
+  onEditLocal: (local: LocalRelease) => void;
+  onActionsLocal: (local: LocalRelease) => void;
+  onActionsManifest: (entry: ManifestEntry) => void;
+  onEditSeed: (seed: SeedType) => void;
+  onDeleteLocal: (id: string) => void;
   onRefresh: () => void;
   dryRun: boolean;
   setDryRun: (v: boolean) => void;
 }) {
-  const hasScheduled = manifestEntries && manifestEntries.length > 0;
+  const localCoverageKeys = useMemo(
+    () =>
+      new Set(
+        localReleases.map(
+          (r) => `${r.input.artist.toLowerCase()}|${r.input.releaseDateISO}`,
+        ),
+      ),
+    [localReleases],
+  );
+
+  const manifestCoverageKeys = useMemo(
+    () =>
+      new Set(
+        (manifestEntries ?? []).map(
+          (m) => `${m.artist.toLowerCase()}|${m.releaseDateISO}`,
+        ),
+      ),
+    [manifestEntries],
+  );
+
+  const manifestOnlyEntries = useMemo(
+    () =>
+      (manifestEntries ?? []).filter(
+        (m) =>
+          !localCoverageKeys.has(
+            `${m.artist.toLowerCase()}|${m.releaseDateISO}`,
+          ),
+      ),
+    [manifestEntries, localCoverageKeys],
+  );
+
+  const unclaimedSeeds = useMemo(
+    () =>
+      SEED_RELEASES.filter(
+        (s) =>
+          !localCoverageKeys.has(
+            `${s.artist.toLowerCase()}|${s.releaseDateISO}`,
+          ) &&
+          !manifestCoverageKeys.has(
+            `${s.artist.toLowerCase()}|${s.releaseDateISO}`,
+          ),
+      ),
+    [localCoverageKeys, manifestCoverageKeys],
+  );
+
+  const upcomingLocals = useMemo(
+    () =>
+      localReleases
+        .filter((r) => isUpcoming(r.input.releaseDateISO))
+        .sort((a, b) => {
+          if (!a.input.releaseDateISO) return 1;
+          if (!b.input.releaseDateISO) return -1;
+          return a.input.releaseDateISO.localeCompare(b.input.releaseDateISO);
+        }),
+    [localReleases],
+  );
+
+  const pastLocals = useMemo(
+    () =>
+      localReleases
+        .filter(
+          (r) => r.input.releaseDateISO && !isUpcoming(r.input.releaseDateISO),
+        )
+        .sort((a, b) =>
+          b.input.releaseDateISO.localeCompare(a.input.releaseDateISO),
+        ),
+    [localReleases],
+  );
+
+  const upcomingManifestOnly = useMemo(
+    () => manifestOnlyEntries.filter((m) => isUpcoming(m.releaseDateISO)),
+    [manifestOnlyEntries],
+  );
+
+  const pastManifestOnly = useMemo(
+    () =>
+      manifestOnlyEntries
+        .filter((m) => !isUpcoming(m.releaseDateISO))
+        .sort((a, b) => b.releaseDateISO.localeCompare(a.releaseDateISO)),
+    [manifestOnlyEntries],
+  );
+
+  const upcomingSeeds = useMemo(
+    () => unclaimedSeeds.filter((s) => isUpcoming(s.releaseDateISO)),
+    [unclaimedSeeds],
+  );
+
+  // Unified upcoming grid: all item types sorted by date ascending; undated drafts last
+  const upcomingItems = useMemo(() => {
+    const items: GridItem[] = [
+      ...upcomingLocals.map((local) => ({ kind: "local" as const, local })),
+      ...upcomingManifestOnly.map((entry) => ({
+        kind: "manifest" as const,
+        entry,
+      })),
+      ...upcomingSeeds.map((seed) => ({ kind: "seed" as const, seed })),
+    ];
+    return items.sort((a, b) => {
+      const da =
+        a.kind === "local"
+          ? a.local.input.releaseDateISO
+          : a.kind === "manifest"
+            ? a.entry.releaseDateISO
+            : a.seed.releaseDateISO;
+      const db =
+        b.kind === "local"
+          ? b.local.input.releaseDateISO
+          : b.kind === "manifest"
+            ? b.entry.releaseDateISO
+            : b.seed.releaseDateISO;
+      if (!da && !db) return 0;
+      if (!da) return 1; // undated goes last
+      if (!db) return -1;
+      return da.localeCompare(db);
+    });
+  }, [upcomingLocals, upcomingManifestOnly, upcomingSeeds]);
+
+  const hasPast = pastLocals.length > 0 || pastManifestOnly.length > 0;
 
   return (
     <div className="min-h-screen relative">
@@ -196,37 +493,53 @@ function LandingPage({
 
       <header className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-wire/15">
         <div className="flex items-center gap-3">
-          <MeanwhileMark className="text-cyan" />
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono font-semibold text-snow text-lg tracking-tight">meanwhile</span>
-            <span className="text-muted text-sm font-mono">/ release scheduler</span>
-          </div>
-        </div>
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <span className={`font-mono text-xs ${dryRun ? 'text-gold' : 'text-cyan'}`}>
-            {dryRun ? 'Test mode' : 'Live mode'}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/meanwhile_RGB_logo_2023.png"
+            alt="Meanwhile"
+            className="h-6 w-auto object-contain"
+          />
+          <span className="text-muted text-sm font-mono">
+            / release scheduler
           </span>
-          <div
-            role="switch"
-            aria-checked={!dryRun}
-            onClick={() => setDryRun(!dryRun)}
-            className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-              dryRun ? 'bg-gold/20' : 'bg-cyan/25'
-            }`}
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onRefresh}
+            title="Refresh manifest"
+            className="text-sm font-mono text-muted hover:text-snow transition-colors"
           >
+            {manifestLoading ? "…" : "↻"}
+          </button>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <span
-              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
-                dryRun ? 'translate-x-0 bg-gold/60' : 'translate-x-5 bg-cyan'
+              className={`font-mono text-xs ${dryRun ? "text-gold" : "text-cyan"}`}
+            >
+              {dryRun ? "Test mode" : "Live mode"}
+            </span>
+            <div
+              role="switch"
+              aria-checked={!dryRun}
+              onClick={() => setDryRun(!dryRun)}
+              className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
+                dryRun ? "bg-gold/20" : "bg-cyan/25"
               }`}
-            />
-          </div>
-        </label>
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
+                  dryRun ? "translate-x-0 bg-gold/60" : "translate-x-5 bg-cyan"
+                }`}
+              />
+            </div>
+          </label>
+        </div>
       </header>
 
       {dryRun && (
         <div className="relative z-10 bg-gold/8 border-b border-gold/15 px-8 py-2">
           <p className="text-xs font-mono text-gold/80 text-center">
-            Test mode is on — no calendar events, emails, or Dropbox actions will actually happen
+            Test mode is on — no calendar events, emails, or Dropbox actions
+            will actually happen
           </p>
         </div>
       )}
@@ -236,79 +549,82 @@ function LandingPage({
       </div>
 
       <main className="relative z-10 px-8 py-10">
-        {/* Scheduled releases (from manifest) */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-xs font-mono uppercase tracking-widest text-muted mb-1">
-                {hasScheduled ? 'Scheduled' : 'Schedule'}
-              </p>
-              <h1 className="font-mono text-2xl font-semibold text-snow">Releases</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onRefresh}
-                title="Refresh manifest"
-                className="text-sm font-mono text-muted hover:text-snow transition-colors"
-              >
-                {manifestLoading ? '…' : '↻'}
-              </button>
-              <button
-                onClick={onNewRelease}
-                className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-depth hover:opacity-90 transition-opacity"
-                style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
-              >
-                + New Release
-              </button>
-            </div>
-          </div>
+        {manifestError && (
+          <p className="text-sm font-mono text-signal mb-6">{manifestError}</p>
+        )}
 
-          {manifestError && (
-            <p className="text-sm font-mono text-signal mb-4">{manifestError}</p>
-          )}
-
-          {hasScheduled ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {manifestEntries!.map((entry) => (
-                <ManifestCard key={entry.releaseId} entry={entry} onOpen={() => onOpenEntry(entry)} />
-              ))}
-            </div>
-          ) : (
-            !manifestLoading && (
-              <p className="text-sm font-mono text-muted">
-                No releases scheduled yet. Create your first release below or use the button above.
-              </p>
-            )
-          )}
+        <div className="mb-6">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted mb-1">
+            Schedule
+          </p>
+          <h1 className="font-mono text-2xl font-semibold text-snow">
+            Upcoming releases
+          </h1>
         </div>
 
-        {/* Pending seeds — from config, not yet scheduled */}
-        {pendingSeeds.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+          {upcomingItems.map((item, i) => {
+            if (item.kind === "local") {
+              return (
+                <LocalReleaseCard
+                  key={item.local.id}
+                  local={item.local}
+                  manifestEntries={manifestEntries}
+                  onEdit={() => onEditLocal(item.local)}
+                  onActions={() => onActionsLocal(item.local)}
+                  onDelete={() => onDeleteLocal(item.local.id)}
+                />
+              );
+            }
+            if (item.kind === "manifest") {
+              return (
+                <ManifestOnlyCard
+                  key={item.entry.releaseId}
+                  entry={item.entry}
+                  onActions={() => onActionsManifest(item.entry)}
+                />
+              );
+            }
+            return (
+              <SeedCard
+                key={i}
+                seed={item.seed}
+                onEdit={() => onEditSeed(item.seed)}
+              />
+            );
+          })}
+
+          <NewReleaseCard onClick={onNewRelease} />
+        </div>
+
+        {hasPast && (
           <div>
             <div className="mb-5">
               <p className="text-xs font-mono uppercase tracking-widest text-muted mb-1">
-                {hasScheduled ? 'Still to schedule' : 'From config'}
+                Archive
               </p>
-              <h2 className="font-mono text-lg font-medium text-snow/80">Upcoming releases</h2>
+              <h2 className="font-mono text-lg font-medium text-snow/80">
+                Past releases
+              </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {pendingSeeds.map((seed, i) => (
-                <SeedCard
-                  key={i}
-                  seed={seed}
-                  onOpen={() =>
-                    onSeedPick({
-                      label: seed.label,
-                      catalogueNumber: '',
-                      artist: seed.artist,
-                      releaseTitle: '',
-                      tracks: [{ title: '' }],
-                      releaseDateISO: seed.releaseDateISO,
-                      royaltyRate: '',
-                      royaltyNotes: '',
-                      genre: '',
-                    })
-                  }
+              {pastLocals.map((local) => (
+                <LocalReleaseCard
+                  key={local.id}
+                  local={local}
+                  manifestEntries={manifestEntries}
+                  onEdit={() => onEditLocal(local)}
+                  onActions={() => onActionsLocal(local)}
+                  onDelete={() => onDeleteLocal(local.id)}
+                  isPast
+                />
+              ))}
+              {pastManifestOnly.map((entry) => (
+                <ManifestOnlyCard
+                  key={entry.releaseId}
+                  entry={entry}
+                  onActions={() => onActionsManifest(entry)}
+                  isPast
                 />
               ))}
             </div>
@@ -317,25 +633,234 @@ function LandingPage({
       </main>
 
       <footer className="relative z-10 px-8 py-5 border-t border-wire/10 flex items-center justify-between">
-        <span className="text-xs font-mono text-ghost">Meanwhile Recordings · Meanwhile Horizons</span>
+        <span className="text-xs font-mono text-ghost">
+          Meanwhile Recordings · Meanwhile Horizons
+        </span>
         <span className="text-xs font-mono text-ghost">Internal tool</span>
       </footer>
     </div>
   );
 }
 
-// Card for a release that's already been scheduled (from manifest)
-function ManifestCard({ entry, onOpen }: { entry: ManifestEntry; onOpen: () => void }) {
+// ─── Status tag ─────────────────────────────────────────────────────────────
+
+function StatusTag({
+  completeness,
+  scheduled,
+}: {
+  completeness: "draft" | "ready";
+  scheduled: boolean;
+}) {
+  const base =
+    "text-[11px] font-mono uppercase tracking-wider rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border";
+  if (scheduled) {
+    return (
+      <span className={`${base} bg-cyan/10 text-cyan border-cyan/25`}>
+        Scheduled
+      </span>
+    );
+  }
+  if (completeness === "ready") {
+    return (
+      <span className={`${base} bg-lime/8 text-lime border-lime/25`}>
+        Ready
+      </span>
+    );
+  }
+  return (
+    <span className={`${base} bg-amber/8 text-amber border-amber/25`}>
+      Draft
+    </span>
+  );
+}
+
+// ─── Card: local release (draft / ready / scheduled) ─────────────────────────
+
+function LocalReleaseCard({
+  local,
+  manifestEntries,
+  onEdit,
+  onActions,
+  onDelete,
+  isPast = false,
+}: {
+  local: LocalRelease;
+  manifestEntries: ManifestEntry[] | null;
+  onEdit: () => void;
+  onActions: () => void;
+  onDelete: () => void;
+  isPast?: boolean;
+}) {
+  const { input } = local;
+  const label = LABELS[input.label];
+  const isRecordings = input.label === "meanwhile-recordings";
+  const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
+
+  const completeness = getCompleteness(input);
+  const scheduled =
+    local.isScheduled ||
+    Boolean(
+      manifestEntries?.some(
+        (m) =>
+          m.artist.toLowerCase() === input.artist.toLowerCase() &&
+          m.releaseDateISO === input.releaseDateISO,
+      ),
+    );
+
+  const days = input.releaseDateISO ? daysUntil(input.releaseDateISO) : null;
+
+  const borderClass =
+    completeness === "draft"
+      ? "border-2 border-amber/40"
+      : scheduled
+        ? "border border-cyan/20"
+        : "border border-wire/25";
+
+  return (
+    <div
+      className={`rounded-xl bg-surface overflow-hidden transition-all duration-200 ${borderClass}`}
+      style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)" }}
+    >
+      <div
+        className="h-0.5 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${completeness === "draft" ? "#e08010" : accentColor} 0%, transparent 70%)`,
+        }}
+      />
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <span
+            className="text-[10px] font-mono flex-shrink-0"
+            style={{ color: accentColor }}
+          >
+            {label.name}
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <span className="text-[10px] font-mono text-ghost">
+              {input.catalogueNumber || "—"}
+            </span>
+            <StatusTag completeness={completeness} scheduled={scheduled} />
+          </div>
+        </div>
+
+        <div className="min-h-[52px]">
+          <p className="font-mono font-semibold text-snow text-xl leading-tight">
+            {input.artist || (
+              <span className="text-ghost italic text-base">No artist</span>
+            )}
+          </p>
+          <p className="text-sm mt-0.5 font-mono">
+            {input.releaseTitle ? (
+              <span className="text-muted">{input.releaseTitle}</span>
+            ) : (
+              <span className="text-ghost/50 italic">No title yet</span>
+            )}
+          </p>
+        </div>
+
+        <div className="min-h-[32px]">
+          {input.releaseDateISO ? (
+            <>
+              <p
+                className={`text-sm ${isPast ? "text-snow/45" : "text-snow/80"}`}
+              >
+                {formatDate(input.releaseDateISO)}
+              </p>
+              {days !== null && (
+                <p
+                  className="text-xs font-mono mt-0.5"
+                  style={{
+                    color: isPast
+                      ? "#3a546e"
+                      : days < 14
+                        ? "#e08010"
+                        : days < 35
+                          ? "#b8ff30"
+                          : "#7a9ab5",
+                  }}
+                >
+                  {days > 0
+                    ? `in ${days} days`
+                    : days === 0
+                      ? "today"
+                      : `${Math.abs(days)} days ago`}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-ghost/60 italic">No date set</p>
+          )}
+        </div>
+
+        <div className="flex gap-2 pt-2 border-t border-wire/10">
+          {completeness === "draft" ? (
+            <button
+              onClick={onEdit}
+              className="flex-1 rounded-lg border border-amber/25 px-3 py-2 text-xs font-mono text-amber/80 hover:text-amber hover:border-amber/45 hover:bg-amber/6 transition-all"
+            >
+              Edit →
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onEdit}
+                className="flex-1 rounded-lg border border-wire/20 px-3 py-2 text-xs font-mono text-snow/60 hover:text-snow hover:border-wire/35 hover:bg-wire/8 transition-all"
+              >
+                Edit
+              </button>
+              <button
+                onClick={onActions}
+                className="flex-1 rounded-lg border px-3 py-2 text-xs font-mono transition-all"
+                style={{ borderColor: `${accentColor}40`, color: accentColor }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    `${accentColor}12`;
+                  (e.currentTarget as HTMLButtonElement).style.borderColor =
+                    `${accentColor}65`;
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor =
+                    `${accentColor}40`;
+                }}
+              >
+                Actions →
+              </button>
+            </>
+          )}
+          <button
+            onClick={onDelete}
+            className="flex-shrink-0 w-8 rounded-lg border border-wire/15 flex items-center justify-center text-ghost/40 hover:text-signal hover:border-signal/30 hover:bg-signal/8 transition-all"
+            title="Delete release"
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Card: manifest-only entry (scheduled, no local record) ─────────────────
+
+function ManifestOnlyCard({
+  entry,
+  onActions,
+  isPast = false,
+}: {
+  entry: ManifestEntry;
+  onActions: () => void;
+  isPast?: boolean;
+}) {
   const label = LABELS[entry.label];
-  const isRecordings = entry.label === 'meanwhile-recordings';
-  const accentColor = isRecordings ? '#00d4ff' : '#8b5cf6';
+  const isRecordings = entry.label === "meanwhile-recordings";
+  const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
   const days = daysUntil(entry.releaseDateISO);
 
   return (
-    <button
-      onClick={onOpen}
-      className="group text-left w-full rounded-xl border border-wire/25 bg-surface transition-all duration-200 hover:bg-elevated hover:-translate-y-0.5 overflow-hidden"
-      style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(122,170,200,0.06)' }}
+    <div
+      className="rounded-xl border border-wire/25 bg-surface overflow-hidden"
+      style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)" }}
     >
       <div
         className="h-0.5 w-full"
@@ -343,98 +868,193 @@ function ManifestCard({ entry, onOpen }: { entry: ManifestEntry; onOpen: () => v
           background: `linear-gradient(90deg, ${accentColor} 0%, transparent 70%)`,
         }}
       />
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-mono uppercase tracking-widest" style={{ color: accentColor }}>
-            {label.shortCode} · {entry.catalogueNumber}
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <span
+            className="text-[10px] font-mono flex-shrink-0"
+            style={{ color: accentColor }}
+          >
+            {label.name}
           </span>
-          <span className="text-[10px] font-mono text-ghost uppercase tracking-wide">Scheduled</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono text-ghost">
+              {entry.catalogueNumber}
+            </span>
+            <StatusTag completeness="ready" scheduled={true} />
+          </div>
         </div>
 
-        <div>
-          <p className="font-mono font-semibold text-snow text-xl leading-tight group-hover:text-white transition-colors">
+        <div className="min-h-[52px]">
+          <p className="font-mono font-semibold text-snow text-xl leading-tight">
             {entry.artist}
           </p>
-          {entry.releaseTitle && (
-            <p className="text-sm text-muted mt-0.5 font-mono">{entry.releaseTitle}</p>
+          {entry.releaseTitle ? (
+            <p className="text-sm text-muted mt-0.5 font-mono">
+              {entry.releaseTitle}
+            </p>
+          ) : (
+            <p className="text-sm text-ghost/50 mt-0.5 italic">—</p>
           )}
         </div>
 
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-sm text-snow/80">{formatDate(entry.releaseDateISO)}</p>
-            <p
-              className="text-xs font-mono mt-0.5"
-              style={{ color: days < 14 ? '#f0c040' : days < 35 ? '#00d4ff' : '#6a95b5' }}
-            >
-              {days > 0 ? `in ${days} days` : days === 0 ? 'today' : `${Math.abs(days)} days ago`}
-            </p>
-          </div>
-          <span
-            className="text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            style={{ color: accentColor }}
+        <div className="min-h-[32px]">
+          <p className={`text-sm ${isPast ? "text-snow/45" : "text-snow/80"}`}>
+            {formatDate(entry.releaseDateISO)}
+          </p>
+          <p
+            className="text-xs font-mono mt-0.5"
+            style={{
+              color: isPast
+                ? "#3a546e"
+                : days < 14
+                  ? "#e08010"
+                  : days < 35
+                    ? "#b8ff30"
+                    : "#7a9ab5",
+            }}
+          >
+            {days > 0
+              ? `in ${days} days`
+              : days === 0
+                ? "today"
+                : `${Math.abs(days)} days ago`}
+          </p>
+        </div>
+
+        <div className="pt-2 border-t border-wire/10">
+          <button
+            onClick={onActions}
+            className="w-full rounded-lg border px-3 py-2 text-xs font-mono transition-all"
+            style={{ borderColor: `${accentColor}40`, color: accentColor }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background =
+                `${accentColor}12`;
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                `${accentColor}65`;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "";
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                `${accentColor}40`;
+            }}
           >
             Actions →
-          </span>
+          </button>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
-// Card for a seed release not yet scheduled
-function SeedCard({ seed, onOpen }: { seed: (typeof SEED_RELEASES)[number]; onOpen: () => void }) {
+// ─── Card: seed / template (artist + date from config, not yet set up) ────────
+
+function SeedCard({ seed, onEdit }: { seed: SeedType; onEdit: () => void }) {
   const label = LABELS[seed.label];
   const suggestedCat = suggestNextCatalogueNumber(label.latestCatalogueNumber);
   const days = daysUntil(seed.releaseDateISO);
-  const isRecordings = seed.label === 'meanwhile-recordings';
-  const accentColor = isRecordings ? '#00d4ff' : '#8b5cf6';
+  const isRecordings = seed.label === "meanwhile-recordings";
+  const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
 
   return (
-    <button
-      onClick={onOpen}
-      className="group text-left w-full rounded-xl border border-wire/20 bg-surface/80 transition-all duration-200 hover:bg-surface hover:-translate-y-0.5 overflow-hidden"
-      style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}
+    <div
+      className="rounded-xl border-2 border-dashed border-wire/18 bg-surface/50 overflow-hidden"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
     >
       <div
         className="h-px w-full"
         style={{
-          background: `linear-gradient(90deg, ${accentColor}60 0%, transparent 70%)`,
+          background: `linear-gradient(90deg, ${accentColor}45 0%, transparent 70%)`,
         }}
       />
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-mono uppercase tracking-widest text-muted">{label.shortCode}</span>
-          <span className="text-[10px] font-mono text-ghost">{suggestedCat}</span>
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-[10px] font-mono text-muted">{label.name}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono text-ghost">
+              {suggestedCat}
+            </span>
+            <StatusTag completeness="draft" scheduled={false} />
+          </div>
         </div>
 
-        <div>
-          <p className="font-mono font-semibold text-snow/90 text-xl leading-tight group-hover:text-white transition-colors">
+        <div className="min-h-[52px]">
+          <p className="font-mono font-semibold text-snow/90 text-xl leading-tight">
             {seed.artist}
           </p>
           <p className="text-xs text-ghost mt-0.5 font-mono">{label.name}</p>
         </div>
 
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-sm text-snow/70">{formatDate(seed.releaseDateISO)}</p>
-            <p
-              className="text-xs font-mono mt-0.5"
-              style={{ color: days < 14 ? '#f0c040' : days < 35 ? '#00d4ff' : '#6a95b5' }}
-            >
-              {days > 0 ? `in ${days} days` : days === 0 ? 'today' : `${Math.abs(days)} days ago`}
-            </p>
-          </div>
-          <span
-            className="text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-muted"
+        <div className="min-h-[32px]">
+          <p className="text-sm text-snow/65">
+            {formatDate(seed.releaseDateISO)}
+          </p>
+          <p
+            className="text-xs font-mono mt-0.5"
+            style={{
+              color: days < 14 ? "#e08010" : days < 35 ? "#b8ff30" : "#7a9ab5",
+            }}
           >
-            Schedule →
-          </span>
+            {days > 0
+              ? `in ${days} days`
+              : days === 0
+                ? "today"
+                : `${Math.abs(days)} days ago`}
+          </p>
+        </div>
+
+        <div className="pt-2 border-t border-wire/10">
+          <button
+            onClick={onEdit}
+            className="w-full rounded-lg border border-wire/18 px-3 py-2 text-xs font-mono text-muted hover:text-snow hover:border-wire/35 hover:bg-wire/8 transition-all"
+          >
+            Set up →
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Trash icon ──────────────────────────────────────────────────────────────
+
+function TrashIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 13 13"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1.5 3.5h10" />
+      <path d="M4.5 3.5V2.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1" />
+      <path d="M10.5 3.5l-.75 7a1 1 0 0 1-1 .9H4.25a1 1 0 0 1-1-.9l-.75-7" />
+    </svg>
+  );
+}
+
+// ─── Card: "+" new release ────────────────────────────────────────────────────
+
+function NewReleaseCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group rounded-xl border border-dashed border-wire/18 bg-transparent hover:bg-surface/25 hover:border-wire/32 transition-all duration-200 min-h-[213px] flex flex-col items-center justify-center gap-3"
+    >
+      <span className="w-10 h-10 rounded-full border border-dashed border-wire/22 flex items-center justify-center text-ghost group-hover:text-muted group-hover:border-wire/38 transition-all text-xl font-mono leading-none">
+        +
+      </span>
+      <span className="text-xs font-mono text-ghost group-hover:text-muted transition-colors">
+        New release
+      </span>
     </button>
   );
 }
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
 
 function ReleaseModal({
   children,
@@ -447,53 +1067,55 @@ function ReleaseModal({
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, []);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto"
-      style={{ background: 'rgba(4,8,16,0.90)', backdropFilter: 'blur(12px)' }}
+      style={{ background: "rgba(4,8,16,0.90)", backdropFilter: "blur(12px)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={`relative w-full ${wide ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl border border-wire/20 mb-12 mx-4`}
+        className={`relative w-full ${wide ? "max-w-4xl" : "max-w-2xl"} rounded-2xl border border-wire/20 mb-12 mx-4`}
         style={{
-          background: 'linear-gradient(170deg, #1a3456 0%, #122844 100%)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.75), 0 1px 0 rgba(122,170,200,0.12)',
+          background: "linear-gradient(170deg, #172c48 0%, #0f2035 100%)",
+          boxShadow:
+            "0 32px 80px rgba(0,0,0,0.75), 0 1px 0 rgba(122,168,200,0.10)",
         }}
       >
-        {/* Cyan accent line at top */}
         <div
           className="absolute top-0 left-8 right-8 h-px rounded-full"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent)' }}
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, rgba(224,128,16,0.2) 20%, rgba(0,212,255,0.45) 50%, rgba(139,92,246,0.25) 80%, transparent)",
+          }}
         />
-
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-wire/20 text-muted hover:text-snow hover:border-wire/40 hover:bg-wire/10 transition-all text-sm z-10 font-mono"
         >
           ✕
         </button>
-
         <div className="p-5 sm:p-8 pt-7">{children}</div>
       </div>
     </div>
   );
 }
+
+// ─── Decorative ──────────────────────────────────────────────────────────────
 
 function GeometricBackground() {
   return (
@@ -517,19 +1139,33 @@ function GeometricBackground() {
       <svg
         viewBox="0 0 400 400"
         className="absolute -bottom-16 -left-16 w-[380px] h-[380px]"
-        style={{ opacity: 0.03 }}
+        style={{ opacity: 0.04 }}
       >
         {[70, 100, 135, 170, 200].map((r) => (
-          <circle key={r} cx="200" cy="200" r={r} fill="none" stroke="#4a8cf7" strokeWidth="1.5" />
+          <circle
+            key={r}
+            cx="200"
+            cy="200"
+            r={r}
+            fill="none"
+            stroke="#b8ff30"
+            strokeWidth="1.5"
+          />
         ))}
       </svg>
     </div>
   );
 }
 
-function MeanwhileMark({ className = '' }: { className?: string }) {
+function MeanwhileMark({ className = "" }: { className?: string }) {
   return (
-    <svg width="24" height="17" viewBox="0 0 24 17" fill="currentColor" className={className}>
+    <svg
+      width="24"
+      height="17"
+      viewBox="0 0 24 17"
+      fill="currentColor"
+      className={className}
+    >
       <rect x="0" y="5" width="3.5" height="12" rx="0.5" />
       <rect x="5" y="0" width="3.5" height="17" rx="0.5" />
       <rect x="10" y="3" width="3.5" height="14" rx="0.5" />
@@ -539,16 +1175,22 @@ function MeanwhileMark({ className = '' }: { className?: string }) {
   );
 }
 
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(y!, m! - 1, d!);
-  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return date.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function daysUntil(iso: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = iso.split("-").map(Number);
   const release = new Date(y!, m! - 1, d!);
   return Math.round((release.getTime() - today.getTime()) / 86400000);
 }

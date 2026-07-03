@@ -21,7 +21,11 @@ export function buildEventTitle(release: Release, task: ScheduledTask): string {
 export function buildEventDescription(release: Release, task: ScheduledTask): string {
   const label = LABELS[release.label];
   const tracklist = release.tracks
-    .map((t, i) => `  ${i + 1}. ${t.artist ? `${t.artist} — ` : ''}${t.title}`)
+    .map((t, i) => {
+      const artist = t.artist ? `${t.artist} — ` : '';
+      const title = t.remixArtist ? `${t.title} (${t.remixArtist} Remix)` : t.title;
+      return `  ${i + 1}. ${artist}${title}`;
+    })
     .join('\n');
   return [
     `Label: ${label.name}`,

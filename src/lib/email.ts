@@ -4,20 +4,16 @@ import type { EmailDraft, EmailDraftInput, Release } from './types';
 const DEFAULT_RECIPIENT = process.env.GMAIL_DRAFT_RECIPIENT || 'meanwhilerec@gmail.com';
 
 function buildRoyaltyLines(release: Release): string[] {
-  const allSameRate = release.tracks.every((t) => !t.royaltyRate || t.royaltyRate === release.royaltyRate);
-  if (allSameRate) {
-    return [`${release.genre}, ${release.royaltyNotes}`];
-  }
-  return [
-    `${release.genre}`,
-    ``,
-    `Royalties:`,
-    ...release.tracks.map((t, i) => {
-      const rate = t.royaltyRate || release.royaltyRate;
-      const artist = t.artist || release.artist;
-      return `${i + 1}. ${artist} - ${t.title}: ${rate}`;
-    }),
-  ];
+  const genreLine = release.genre || '';
+  const royaltyLine = release.royaltyNotes || '';
+  if (genreLine && royaltyLine) return [`${genreLine}, ${royaltyLine}`];
+  if (genreLine) return [genreLine];
+  if (royaltyLine) return [royaltyLine];
+  return [];
+}
+
+function trackTitle(t: Release['tracks'][number]): string {
+  return t.remixArtist ? `${t.title} (${t.remixArtist} Remix)` : t.title;
 }
 
 export function generateEmailDraft(input: EmailDraftInput, recipient: string = DEFAULT_RECIPIENT): EmailDraft {
@@ -26,7 +22,7 @@ export function generateEmailDraft(input: EmailDraftInput, recipient: string = D
   const subject = `${release.catalogueNumber} - ${release.artist} - Release assets`;
 
   const tracklist = release.tracks
-    .map((t, i) => `${i + 1}. ${t.artist || release.artist} - ${t.title}`)
+    .map((t, i) => `${i + 1}. ${t.artist || release.artist} - ${trackTitle(t)}`)
     .join('\n');
 
   const mastersLink = input.mastersLink;

@@ -52,10 +52,12 @@ type SectionKey = 'dropbox' | 'calendar' | 'email' | 'move';
 export function ReleaseDetail({
   release,
   onReleaseMoved,
+  onScheduled,
   dryRun,
 }: {
   release: Release;
   onReleaseMoved: (r: Release) => void;
+  onScheduled?: () => void;
   dryRun: boolean;
 }) {
   const label = LABELS[release.label];
@@ -90,6 +92,12 @@ export function ReleaseDetail({
   useEffect(() => {
     if (calendar.result?.ok && !calendar.result.cancelled) setOpenSection('email');
   }, [calendar.result]);
+
+  // Notify parent when calendar events are successfully created
+  useEffect(() => {
+    if (calendarDone) onScheduled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendarDone]);
 
   function toggle(section: SectionKey) {
     setOpenSection((prev) => (prev === section ? 'dropbox' : section));
@@ -136,10 +144,10 @@ export function ReleaseDetail({
           { label: 'Send email', done: emailDone },
         ].map((step, i, arr) => (
           <div key={step.label} className="flex items-center flex-1 min-w-0">
-            <div className={`flex items-center gap-2 text-xs font-mono ${step.done ? 'text-cyan' : 'text-muted'}`}>
+            <div className={`flex items-center gap-2 text-xs font-mono ${step.done ? 'text-lime' : 'text-muted'}`}>
               <span
                 className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
-                  step.done ? 'bg-cyan/20 text-cyan' : 'border border-wire/25 text-ghost'
+                  step.done ? 'bg-lime/15 text-lime' : 'border border-wire/25 text-ghost'
                 }`}
               >
                 {step.done ? '✓' : i + 1}
@@ -176,7 +184,7 @@ export function ReleaseDetail({
           <div className="space-y-3 mt-1">
             {dropbox.result.folderFound ? (
               <details>
-                <summary className="text-xs font-mono text-cyan cursor-pointer select-none">
+                <summary className="text-xs font-mono text-lime cursor-pointer select-none">
                   ✓ Release folder found
                 </summary>
                 <p className="text-xs font-mono text-ghost mt-1 pl-4">{dropbox.result.folderPath}</p>
@@ -189,7 +197,7 @@ export function ReleaseDetail({
               {Object.entries(dropbox.result.categories).map(([key, info]) => (
                 <li key={key} className="text-xs font-mono">
                   <span className="text-muted">{CATEGORY_LABELS[key as DropboxAssetCategory]}: </span>
-                  <span className={info.found ? 'text-cyan' : 'text-signal'}>
+                  <span className={info.found ? 'text-lime' : 'text-signal'}>
                     {info.found ? `✓ ${info.fileCount} file${info.fileCount === 1 ? '' : 's'}` : 'Missing'}
                   </span>
                 </li>
@@ -265,8 +273,8 @@ export function ReleaseDetail({
         )}
 
         {calendarDone && (
-          <div className="rounded-lg border border-cyan/25 bg-cyan/8 px-4 py-3 mt-2 flex items-center justify-between gap-4">
-            <p className="text-sm font-mono text-cyan">
+          <div className="rounded-lg border border-lime/20 bg-lime/5 px-4 py-3 mt-2 flex items-center justify-between gap-4">
+            <p className="text-sm font-mono text-lime">
               ✓ {calendar.result?.events?.length ?? 0} event
               {(calendar.result?.events?.length ?? 0) === 1 ? '' : 's'} added to your calendar
               {calendar.result?.existingEventCountBeforeRun
@@ -275,7 +283,7 @@ export function ReleaseDetail({
             </p>
             <button
               onClick={() => setOpenSection('email')}
-              className="text-xs font-mono text-cyan border border-cyan/30 rounded-lg px-3 py-1.5 hover:bg-cyan/10 transition-colors whitespace-nowrap flex-shrink-0"
+              className="text-xs font-mono text-lime border border-lime/25 rounded-lg px-3 py-1.5 hover:bg-lime/8 transition-colors whitespace-nowrap flex-shrink-0"
             >
               Next: send release email →
             </button>
@@ -344,7 +352,7 @@ export function ReleaseDetail({
                       email.run({ release, sendDraftId: email.result!.draftId }, { dryRun });
                     }}
                     className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 transition-opacity"
-                    style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
                   >
                     Yes, send
                   </button>
@@ -361,7 +369,7 @@ export function ReleaseDetail({
 
           {email.error && <ErrorLine>{email.error}</ErrorLine>}
           {email.result?.sent && (
-            <p className="text-sm font-mono text-cyan">✓ Email sent to {emailPreview.recipient}.</p>
+            <p className="text-sm font-mono text-lime">✓ Email sent to {emailPreview.recipient}.</p>
           )}
         </div>
       </CollapsibleSection>
@@ -396,7 +404,7 @@ export function ReleaseDetail({
         {moveDateError && <ErrorLine>{moveDateError}</ErrorLine>}
         {move.error && <ErrorLine>{move.error}</ErrorLine>}
         {move.result?.ok && (
-          <p className="text-sm font-mono text-cyan">
+          <p className="text-sm font-mono text-lime">
             ✓ Moved to {formatDate(newDate)}. Updated {move.result.updatedEvents?.length ?? 0}, created{' '}
             {move.result.createdEvents?.length ?? 0} new event
             {(move.result.createdEvents?.length ?? 0) === 1 ? '' : 's'}.
@@ -433,12 +441,12 @@ function CollapsibleSection({
       <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 px-5 py-4 text-left">
         <span
           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-semibold flex-shrink-0 ${
-            done ? 'bg-cyan/20 text-cyan' : open ? 'bg-wire/20 text-snow' : 'border border-wire/20 text-ghost'
+            done ? 'bg-lime/15 text-lime' : open ? 'bg-wire/20 text-snow' : 'border border-wire/20 text-ghost'
           }`}
         >
           {done ? '✓' : number}
         </span>
-        <span className={`text-sm font-mono font-semibold flex-1 ${done ? 'text-cyan/80' : open ? 'text-snow' : 'text-snow/55'}`}>
+        <span className={`text-sm font-mono font-semibold flex-1 ${done ? 'text-lime/80' : open ? 'text-snow' : 'text-snow/55'}`}>
           {title}
           {subtitle && <span className="ml-2 text-xs font-normal text-ghost">{subtitle}</span>}
         </span>
@@ -463,7 +471,7 @@ function PrimaryButton({
       onClick={onClick}
       disabled={loading}
       className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 disabled:opacity-60 transition-opacity"
-      style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #4a8cf7 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
     >
       {children}
     </button>
