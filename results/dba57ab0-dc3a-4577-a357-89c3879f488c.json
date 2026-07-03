@@ -1,0 +1,15 @@
+{
+  "requestId": "dba57ab0-dc3a-4577-a357-89c3879f488c",
+  "completedAt": "2026-07-03T08:08:48.539Z",
+  "ok": true,
+  "draftId": "r-5713570858958413009",
+  "draft": {
+    "recipient": "meanwhilerec@gmail.com",
+    "subject": "MW091 - Maze 28 - Release assets",
+    "body": "Hi James!\n\nOur next release is here, 3 tracks from Maze 28.\n\nAs semi usual we are racing the clock a bit and appreciate you pulling this together!\n\n1. Maze 28 - Iguana\n2. Maze 28 - Cobra\n3. Maze 28 - Komodo\n\nRelease Date: Friday August 7th\n\nProgressive House\n\nMASTERS - https://www.dropbox.com/scl/fo/c4oj3eyyt9k96146zhxhy/AAs69UtTmMGb-ioObPYexRY?rlkey=nyi0unhp1eeolstlu4qva9q0l&dl=0\n\nARTWORK - Coming from Matty\n\nAs usual a big thanks for helping us getting this one together!\n\nG&M",
+    "mastersLink": "https://www.dropbox.com/scl/fo/c4oj3eyyt9k96146zhxhy/AAs69UtTmMGb-ioObPYexRY?rlkey=nyi0unhp1eeolstlu4qva9q0l&dl=0",
+    "missingAssets": [
+      "artwork"
+    ]
+  }
+}
