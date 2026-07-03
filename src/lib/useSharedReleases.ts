@@ -95,6 +95,7 @@ export function useSharedReleases(): {
   const load = useCallback(async () => {
     if (!GITHUB_OWNER || !GITHUB_REPO) {
       setReleases(getLocalReleases());
+      setLoading(false);
       return;
     }
     setLoading(true);

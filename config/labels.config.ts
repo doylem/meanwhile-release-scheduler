@@ -104,9 +104,6 @@ export interface SeedRelease {
   releaseDateISO: string; // YYYY-MM-DD, Australia/Melbourne local date
 }
 
-/** Upcoming releases to pre-populate the app with for convenience. */
-export const SEED_RELEASES: SeedRelease[] = [
-  { label: 'meanwhile-recordings', artist: 'Fran Garay', releaseDateISO: '2026-07-17' },
-  { label: 'meanwhile-recordings', artist: 'Maze 28', releaseDateISO: '2026-08-07' },
-  { label: 'meanwhile-recordings', artist: 'Juan & Casnik', releaseDateISO: '2026-08-28' },
-];
+/** Pre-populated placeholders shown before a release is set up. Left empty now that
+ *  releases persist to GitHub and load automatically for all users. */
+export const SEED_RELEASES: SeedRelease[] = [];
