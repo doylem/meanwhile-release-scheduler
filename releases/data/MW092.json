@@ -1,0 +1,21 @@
+{
+  "id": "b74cf92e-40fb-4a51-998b-3790f0ecbf43",
+  "savedAt": "2026-07-03T10:11:10.012Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW092",
+    "artist": "Juan & Casnik",
+    "releaseTitle": "Test",
+    "tracks": [
+      {
+        "title": "Inner glow MASTERED"
+      }
+    ],
+    "releaseDateISO": "2026-08-28",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
