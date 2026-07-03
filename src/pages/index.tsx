@@ -278,14 +278,6 @@ function App() {
                       : "")}
                 </p>
               </div>
-              {modalStep === "detail" && (
-                <button
-                  onClick={openFormNew}
-                  className="text-sm font-mono text-muted hover:text-cyan transition-colors shrink-0 ml-4"
-                >
-                  ← New release
-                </button>
-              )}
             </div>
 
             {formError && modalStep === "form" && (
