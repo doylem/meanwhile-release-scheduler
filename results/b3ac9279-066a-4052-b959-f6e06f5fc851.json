@@ -1,0 +1,39 @@
+{
+  "requestId": "b3ac9279-066a-4052-b959-f6e06f5fc851",
+  "completedAt": "2026-07-03T03:17:22.287Z",
+  "ok": true,
+  "catalogueNumber": "MW090",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW090 - Fran Garay EP 2",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 6
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 4
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/xijhe9ahe2jgguwby66yx/AI_2JWzXTSJBffzCfdDDsto?rlkey=l7pg6wzk9pbr5r36dmyy8q7ui&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/9ej20fme0kadew2h505y8/ANl11kmOIBj08TGGNwNA30Y?rlkey=k3do84wrn8ex8fylue40mu3bx&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/y2sgg180kuvbdp8kws5in/AEsmzS5_zxEWKJYDpxYvx7w?rlkey=323ahsqniy1mjbua6eoazsqjq&dl=0"
+  }
+}
