@@ -45,34 +45,16 @@ runs:
         # Merge pending manifest entry into releases/manifest.json if present
         if [ -f "/tmp/manifest-pending.json" ]; then
           mkdir -p releases
-          python3 - <<'PYEOF'
-import json, os, sys
-
-pending_path = '/tmp/manifest-pending.json'
-manifest_path = 'releases/manifest.json'
-
-with open(pending_path) as f:
-    new_entry = json.load(f)
-
-existing = []
-if os.path.exists(manifest_path):
-    with open(manifest_path) as f:
-        try:
-            existing = json.load(f)
-        except Exception:
-            existing = []
-
-# Upsert: remove any existing entry with the same releaseId, then append the new one
-updated = [e for e in existing if e.get('releaseId') != new_entry.get('releaseId')]
-updated.append(new_entry)
-updated.sort(key=lambda x: x.get('releaseDateISO', ''))
-
-with open(manifest_path, 'w') as f:
-    json.dump(updated, f, indent=2)
-    f.write('\n')
-
-print(f'Manifest updated: {len(updated)} release(s)')
-PYEOF
+          NEW_ENTRY=$(cat /tmp/manifest-pending.json)
+          NEW_ID=$(echo "$NEW_ENTRY" | jq -r '.releaseId')
+          if [ -f "releases/manifest.json" ]; then
+            jq --argjson new "$NEW_ENTRY" --arg id "$NEW_ID" \
+              '(map(select(.releaseId != $id)) + [$new]) | sort_by(.releaseDateISO)' \
+              releases/manifest.json > /tmp/manifest-merged.json
+          else
+            echo "[$NEW_ENTRY]" | jq 'sort_by(.releaseDateISO)' > /tmp/manifest-merged.json
+          fi
+          cp /tmp/manifest-merged.json releases/manifest.json
           git add "releases/manifest.json"
         fi
 
