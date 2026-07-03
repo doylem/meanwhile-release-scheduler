@@ -1,0 +1,38 @@
+{
+  "requestId": "711a4794-25dc-4bb6-9d3a-250c4a224dea",
+  "completedAt": "2026-07-03T08:14:27.978Z",
+  "ok": true,
+  "catalogueNumber": "MWH025",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Horizons/MWH025 - Savvas EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 1
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/l60gdlm6v6echim6f3t0h/APM1V_ez4MEckqcXrTwdblM?rlkey=k5y9s1nb7tz4ev2cjcak4vbhh&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/5qnfwxaprcofpr5bb6p5p/AGHdkKBSba_jPGmgdZx1V4U?rlkey=zk7xfujgx59rjdw4kgor1txqr&dl=0"
+  }
+}
