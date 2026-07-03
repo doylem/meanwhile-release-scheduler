@@ -1,0 +1,25 @@
+{
+  "id": "9fb50207-d1f6-4e25-8279-d71590dc169f",
+  "savedAt": "2026-07-03T07:58:34.800Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW090",
+    "artist": "Fran Garay",
+    "releaseTitle": "A Ruined World / Closed Feelings",
+    "tracks": [
+      {
+        "title": "A Ruined World"
+      },
+      {
+        "title": "Closed Feelings",
+        "artist": "Fran Garay & Diego R"
+      }
+    ],
+    "releaseDateISO": "2026-07-17",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": true
+}
