@@ -1,0 +1,16 @@
+{
+  "requestId": "a1bf1f99-0eea-4171-ace8-691ed43c3377",
+  "completedAt": "2026-07-03T05:50:26.680Z",
+  "ok": true,
+  "dryRun": true,
+  "catalogueNumber": "MW090",
+  "pathsSearched": [
+    "/- MEANWHILE/Releases - Meanwhile",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/release pack/masters",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/release pack/artwork",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/release pack/videos",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/assets",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/premasters",
+    "/- MEANWHILE/Releases - Meanwhile/<matched folder>/remix packs"
+  ]
+}
