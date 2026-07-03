@@ -28,6 +28,7 @@ export interface ScheduledTask {
   dueDateISO: string;
   daysBeforeRelease: number;
   startHour?: number;
+  startMinute?: number;
 }
 
 export interface CalendarEventPlan {

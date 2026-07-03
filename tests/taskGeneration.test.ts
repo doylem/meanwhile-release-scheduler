@@ -43,14 +43,19 @@ describe('task generation', () => {
     expect(times.startDateTime.endsWith('+10:00')).toBe(true);
   });
 
-  it('uses the startHour override for tasks that specify one', () => {
+  it('uses the startHour/startMinute overrides for tasks that specify them', () => {
     const tasks = generateTasks('2026-07-17');
     const byId = Object.fromEntries(tasks.map((t) => [t.id, t]));
     expect(byId['release-announcement']!.startHour).toBe(12);
+    expect(byId['release-announcement']!.startMinute).toBeUndefined();
     expect(byId['soundcloud-upload']!.startHour).toBe(12);
-    const times = buildEventTimes('2026-07-18', undefined, 12);
-    expect(times.startDateTime).toContain('T12:00:00');
-    expect(times.endDateTime).toContain('T12:15:00');
+    expect(byId['soundcloud-upload']!.startMinute).toBe(15);
+    const timesAnnouncement = buildEventTimes('2026-07-18', undefined, 12);
+    expect(timesAnnouncement.startDateTime).toContain('T12:00:00');
+    expect(timesAnnouncement.endDateTime).toContain('T12:15:00');
+    const timesSoundcloud = buildEventTimes('2026-07-18', undefined, 12, 15);
+    expect(timesSoundcloud.startDateTime).toContain('T12:15:00');
+    expect(timesSoundcloud.endDateTime).toContain('T12:30:00');
   });
 
   it('uses the AEDT offset for due dates that fall in daylight saving', () => {

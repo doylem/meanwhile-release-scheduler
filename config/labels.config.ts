@@ -48,6 +48,8 @@ export interface TaskRule {
   owner: TaskOwner;
   /** Override the calendar event start hour (24h). Defaults to EVENT_TIME.startHour. */
   startHour?: number;
+  /** Override the calendar event start minute. Defaults to EVENT_TIME.startMinute. */
+  startMinute?: number;
 }
 
 /**
@@ -64,7 +66,7 @@ export const TASK_RULES: TaskRule[] = [
   { id: 'teaser-1', daysBeforeRelease: 3, title: 'Post 1st video teaser', owner: 'Gavin' },
   { id: 'teaser-2', daysBeforeRelease: 1, title: 'Post 2nd video teaser', owner: 'Gavin' },
   { id: 'release-announcement', daysBeforeRelease: -1, title: 'Post Banner / release announcement', owner: 'Gavin', startHour: 12 },
-  { id: 'soundcloud-upload', daysBeforeRelease: -1, title: 'Upload release to Soundcloud', owner: 'Gavin', startHour: 12 },
+  { id: 'soundcloud-upload', daysBeforeRelease: -1, title: 'Upload release to Soundcloud', owner: 'Gavin', startHour: 12, startMinute: 15 },
 ];
 
 /** Default timezone for all date math. Respects AEST/AEDT automatically. */

@@ -17,13 +17,10 @@ import {
 import { useReleaseStates } from "../lib/useReleaseStates";
 import type { ReleaseState } from "../lib/types";
 import {
-  deleteLocalRelease,
   generateLocalId,
-  getLocalReleases,
-  markLocalReleaseScheduled,
-  saveLocalRelease,
   type LocalRelease,
 } from "../lib/localReleases";
+import { useSharedReleases } from "../lib/useSharedReleases";
 import type { Release, ReleaseInput } from "../lib/types";
 
 export default function Home() {
@@ -74,15 +71,14 @@ function App() {
   const [release, setRelease] = useState<Release | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
-  // Empty initial state avoids SSR/client hydration mismatch; localStorage is loaded after mount
-  const [localReleases, setLocalReleases] = useState<LocalRelease[]>([]);
+  const { releases: localReleases, loading: releasesLoading, syncing: releasesSyncing, save: saveRelease, remove: removeRelease } = useSharedReleases();
+  const localReleasesRef = useRef<LocalRelease[]>([]);
   const [currentLocalId, setCurrentLocalId] = useState<string | null>(null);
   const currentLocalIdRef = useRef<string | null>(null);
 
-  // Load from localStorage after hydration to avoid SSR mismatch
   useEffect(() => {
-    setLocalReleases(getLocalReleases());
-  }, []);
+    localReleasesRef.current = localReleases;
+  });
 
   function setLocalId(id: string | null) {
     currentLocalIdRef.current = id;
@@ -108,15 +104,14 @@ function App() {
   const handleAutoSave = useCallback((input: ReleaseInput) => {
     const id = currentLocalIdRef.current;
     if (!id || !input.artist.trim()) return;
-    const existing = getLocalReleases().find((r) => r.id === id);
-    saveLocalRelease({
+    const existing = localReleasesRef.current.find((r) => r.id === id);
+    saveRelease({
       id,
       savedAt: new Date().toISOString(),
       input,
       isScheduled: existing?.isScheduled ?? false,
     });
-    setLocalReleases(getLocalReleases());
-  }, []);
+  }, [saveRelease]);
 
   const handleSaveDraft = useCallback(
     (input: ReleaseInput) => {
@@ -127,16 +122,16 @@ function App() {
   );
 
   const handleDeleteLocal = useCallback((id: string) => {
-    deleteLocalRelease(id);
-    setLocalReleases(getLocalReleases());
-  }, []);
+    removeRelease(id);
+  }, [removeRelease]);
 
   const handleScheduled = useCallback(() => {
     const id = currentLocalIdRef.current;
     if (!id) return;
-    markLocalReleaseScheduled(id);
-    setLocalReleases(getLocalReleases());
-  }, []);
+    const existing = localReleasesRef.current.find((r) => r.id === id);
+    if (!existing) return;
+    saveRelease({ ...existing, isScheduled: true });
+  }, [saveRelease]);
 
   function openFormNew() {
     setLocalId(generateLocalId());
@@ -158,7 +153,7 @@ function App() {
 
   function openFormSeed(seed: SeedType) {
     // Reuse an existing local release for this seed if one already exists
-    const existing = getLocalReleases().find(
+    const existing = localReleasesRef.current.find(
       (r) =>
         r.input.artist.toLowerCase() === seed.artist.toLowerCase() &&
         r.input.releaseDateISO === seed.releaseDateISO,
@@ -246,10 +241,12 @@ function App() {
     <>
       <LandingPage
         localReleases={localReleases}
+        releasesLoading={releasesLoading}
         manifestEntries={manifestEntries}
         manifestLoading={manifestLoading}
         manifestError={manifestError}
         releaseStates={releaseStates}
+        releasesSyncing={releasesSyncing}
         onNewRelease={openFormNew}
         onEditLocal={openFormEdit}
         onActionsLocal={openActionsLocal}
@@ -330,18 +327,12 @@ function App() {
                   refreshManifest();
                   const id = currentLocalIdRef.current;
                   if (id) {
-                    const existing = getLocalReleases().find(
-                      (lr) => lr.id === id,
-                    );
+                    const existing = localReleasesRef.current.find((lr) => lr.id === id);
                     if (existing) {
-                      saveLocalRelease({
+                      saveRelease({
                         ...existing,
-                        input: {
-                          ...existing.input,
-                          releaseDateISO: r.releaseDateISO,
-                        },
+                        input: { ...existing.input, releaseDateISO: r.releaseDateISO },
                       });
-                      setLocalReleases(getLocalReleases());
                     }
                   }
                 }}
@@ -356,10 +347,12 @@ function App() {
 
 function LandingPage({
   localReleases,
+  releasesLoading,
   manifestEntries,
   manifestLoading,
   manifestError,
   releaseStates,
+  releasesSyncing,
   onNewRelease,
   onEditLocal,
   onActionsLocal,
@@ -371,10 +364,12 @@ function LandingPage({
   setDryRun,
 }: {
   localReleases: LocalRelease[];
+  releasesLoading: boolean;
   manifestEntries: ManifestEntry[] | null;
   manifestLoading: boolean;
   manifestError: string | null;
   releaseStates: Record<string, ReleaseState>;
+  releasesSyncing: boolean;
   onNewRelease: () => void;
   onEditLocal: (local: LocalRelease) => void;
   onActionsLocal: (local: LocalRelease) => void;
@@ -524,10 +519,10 @@ function LandingPage({
         <div className="flex items-center gap-4">
           <button
             onClick={onRefresh}
-            title="Refresh manifest"
+            title={releasesSyncing ? "Syncing…" : "Refresh manifest"}
             className="text-sm font-mono text-muted hover:text-snow transition-colors"
           >
-            {manifestLoading ? "…" : "↻"}
+            {manifestLoading || releasesSyncing ? "…" : "↻"}
           </button>
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <span
@@ -581,6 +576,24 @@ function LandingPage({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+          {releasesLoading && upcomingItems.length === 0 && (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-wire/15 bg-surface overflow-hidden animate-pulse"
+                  style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)", minHeight: 213 }}
+                >
+                  <div className="h-0.5 w-full bg-wire/10" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-3 w-24 rounded bg-wire/15" />
+                    <div className="h-6 w-36 rounded bg-wire/12" />
+                    <div className="h-4 w-20 rounded bg-wire/10" />
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
           {upcomingItems.map((item, i) => {
             if (item.kind === "local") {
               return (

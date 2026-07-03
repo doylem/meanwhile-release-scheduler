@@ -40,3 +40,10 @@ select option {
 
 details summary { list-style: none; }
 details summary::-webkit-details-marker { display: none; }
+
+@keyframes workflow-progress {
+  0%   { width: 0%;   margin-left: 0%; }
+  40%  { width: 60%;  margin-left: 0%; }
+  60%  { width: 60%;  margin-left: 40%; }
+  100% { width: 0%;   margin-left: 100%; }
+}

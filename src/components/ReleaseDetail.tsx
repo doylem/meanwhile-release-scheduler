@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LABELS } from '../../config/labels.config';
 import { generateEmailDraft } from '../lib/email';
-import { useWorkflowAction } from '../lib/useWorkflowAction';
+import { useWorkflowAction, type ActionStatus } from '../lib/useWorkflowAction';
 import { isFriday, nextFriday } from '../lib/scheduling';
 import type { DropboxAssetCategory, DropboxAssetStatus, Release, ReleaseState } from '../lib/types';
 
@@ -233,13 +233,16 @@ export function ReleaseDetail({
           loading={dropbox.status === 'waiting' || dropbox.status === 'dispatching'}
           onClick={() => dropbox.run({ catalogueNumber: release.catalogueNumber }, { dryRun })}
         >
-          {dropbox.status === 'waiting' || dropbox.status === 'dispatching'
-            ? 'Checking…'
+          {dropbox.status === 'dispatching'
+            ? 'Dispatching…'
+            : dropbox.status === 'waiting'
+            ? 'Checking files…'
             : dropboxDone
             ? 'Re-check files'
             : 'Check release files'}
         </SecondaryButton>
 
+        <WorkflowStatusNote status={dropbox.status} />
         {dropbox.error && <ErrorLine>{dropbox.error}</ErrorLine>}
 
         {dropbox.result && (
@@ -326,10 +329,13 @@ export function ReleaseDetail({
             loading={calendar.status === 'waiting' || calendar.status === 'dispatching'}
             onClick={() => calendar.run({ release, mode }, { dryRun })}
           >
-            {calendar.status === 'waiting' || calendar.status === 'dispatching'
-              ? 'Working…'
+            {calendar.status === 'dispatching'
+              ? 'Dispatching…'
+              : calendar.status === 'waiting'
+              ? 'Creating events…'
               : 'Create calendar events'}
           </PrimaryButton>
+          <WorkflowStatusNote status={calendar.status} />
         </div>
 
         {calendar.error && <ErrorLine>{calendar.error}</ErrorLine>}
@@ -411,12 +417,15 @@ export function ReleaseDetail({
                 email.run({ release, mastersLink, artworkLink, bodyOverride: emailBody }, { dryRun });
               }}
             >
-              {email.status === 'waiting' || email.status === 'dispatching'
+              {email.status === 'dispatching'
+                ? 'Dispatching…'
+                : email.status === 'waiting'
                 ? 'Creating draft…'
                 : email.result?.draftId
                 ? 'Regenerate draft'
                 : 'Create Gmail draft'}
             </PrimaryButton>
+            <WorkflowStatusNote status={email.status} />
 
             {email.result?.draftId && !email.result.sent && (
               !confirmSend ? (
@@ -536,6 +545,15 @@ function CollapsibleSection({
   );
 }
 
+function Spinner() {
+  return (
+    <svg className="animate-spin w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function PrimaryButton({
   onClick,
   children,
@@ -549,9 +567,10 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={loading}
-      className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 disabled:opacity-60 transition-opacity"
+      className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 disabled:opacity-70 transition-opacity"
       style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   );
@@ -570,10 +589,30 @@ function SecondaryButton({
     <button
       onClick={onClick}
       disabled={loading}
-      className="rounded-lg border border-wire/25 px-4 py-2 text-sm font-mono text-snow hover:bg-wire/10 hover:border-wire/40 disabled:opacity-60 transition-all"
+      className="inline-flex items-center gap-2 rounded-lg border border-wire/25 px-4 py-2 text-sm font-mono text-snow hover:bg-wire/10 hover:border-wire/40 disabled:opacity-70 transition-all"
     >
+      {loading && <Spinner />}
       {children}
     </button>
+  );
+}
+
+function WorkflowStatusNote({ status }: { status: ActionStatus }) {
+  if (status !== 'dispatching' && status !== 'waiting') return null;
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-mono text-muted">
+        {status === 'dispatching'
+          ? 'Sending to GitHub…'
+          : 'Running on GitHub Actions · usually 30–60 sec'}
+      </p>
+      <div className="h-0.5 w-full rounded-full bg-wire/15 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-cyan/50 to-violet-400/50"
+          style={{ animation: 'workflow-progress 2s ease-in-out infinite' }}
+        />
+      </div>
+    </div>
   );
 }
 
