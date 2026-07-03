@@ -1,16 +1,7 @@
 import { formatFridayLong } from './scheduling';
 import type { EmailDraft, EmailDraftInput, Release } from './types';
 
-const DEFAULT_RECIPIENT = process.env.GMAIL_DRAFT_RECIPIENT || 'meanwhilerec@gmail.com';
-
-function buildRoyaltyLines(release: Release): string[] {
-  const genreLine = release.genre || '';
-  const royaltyLine = release.royaltyNotes || '';
-  if (genreLine && royaltyLine) return [`${genreLine}, ${royaltyLine}`];
-  if (genreLine) return [genreLine];
-  if (royaltyLine) return [royaltyLine];
-  return [];
-}
+const DEFAULT_RECIPIENT = process.env.GMAIL_DRAFT_RECIPIENT || '';
 
 function trackTitle(t: Release['tracks'][number]): string {
   return t.remixArtist ? `${t.title} (${t.remixArtist} Remix)` : t.title;
@@ -19,7 +10,7 @@ function trackTitle(t: Release['tracks'][number]): string {
 export function generateEmailDraft(input: EmailDraftInput, recipient: string = DEFAULT_RECIPIENT): EmailDraft {
   const { release } = input;
 
-  const subject = `${release.catalogueNumber} - ${release.artist} - Release assets`;
+  const subject = `${release.catalogueNumber} - ${release.artist} - ${release.releaseTitle}`;
 
   const tracklist = release.tracks
     .map((t, i) => `${i + 1}. ${t.artist || release.artist} - ${trackTitle(t)}`)
@@ -34,19 +25,22 @@ export function generateEmailDraft(input: EmailDraftInput, recipient: string = D
   if (!mastersLink) missingAssets.push('masters');
   if (!artworkLink) missingAssets.push('artwork');
 
-  const body = [
+  const bodyParts = [
     `Hi James!`,
     ``,
-    `Our next release is here, ${release.tracks.length} tracks from ${release.artist}.`,
-    ``,
-    `As semi usual we are racing the clock a bit and appreciate you pulling this together!`,
+    `Our next release is here, ${release.tracks.length} track${release.tracks.length === 1 ? '' : 's'} from ${release.artist}.`,
     ``,
     tracklist,
     ``,
     `Release Date: ${formatFridayLong(release.releaseDateISO)}`,
     ``,
-    ...buildRoyaltyLines(release),
-    ``,
+  ];
+
+  if (release.genre) {
+    bodyParts.push(`Genre: ${release.genre}`, ``);
+  }
+
+  bodyParts.push(
     `MASTERS - ${mastersLine}`,
     ``,
     `ARTWORK - ${artworkLine}`,
@@ -54,12 +48,12 @@ export function generateEmailDraft(input: EmailDraftInput, recipient: string = D
     `As usual a big thanks for helping us getting this one together!`,
     ``,
     `G&M`,
-  ].join('\n');
+  );
 
   return {
     recipient,
     subject,
-    body,
+    body: bodyParts.join('\n'),
     mastersLink,
     artworkLink,
     missingAssets,

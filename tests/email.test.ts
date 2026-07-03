@@ -18,9 +18,9 @@ const input: ReleaseInput = {
 describe('email draft generation', () => {
   const release = buildRelease(input);
 
-  it('builds the subject line as CATALOGUE - Artist - Release assets', () => {
+  it('builds the subject line as CATALOGUE - Artist - Release Title', () => {
     const draft = generateEmailDraft({ release });
-    expect(draft.subject).toBe("MW089 - Alex O'Rion - Release assets");
+    expect(draft.subject).toBe("MW089 - Alex O'Rion - Hartseer EP");
   });
 
   it('greets James, states track count and artist, and signs off G&M', () => {
@@ -41,9 +41,10 @@ describe('email draft generation', () => {
     expect(draft.body).toContain('Release Date: Friday June 26th');
   });
 
-  it('includes genre and royalty notes on one line', () => {
+  it('includes genre on its own line, without royalty notes', () => {
     const draft = generateEmailDraft({ release });
-    expect(draft.body).toContain('Progressive House, 70% royalties to Alex');
+    expect(draft.body).toContain('Genre: Progressive House');
+    expect(draft.body).not.toContain('royalties');
   });
 
   it('falls back to "Coming from Gavin/Matty" when links are missing, and flags them', () => {
@@ -64,8 +65,9 @@ describe('email draft generation', () => {
     expect(draft.missingAssets).toEqual([]);
   });
 
-  it('defaults the recipient to the configured Gmail draft recipient', () => {
+  it('defaults the recipient to the GMAIL_DRAFT_RECIPIENT env var (empty in test env)', () => {
     const draft = generateEmailDraft({ release });
-    expect(draft.recipient).toBe('meanwhilerec@gmail.com');
+    // In the test environment the env var is unset; the workflow sets it to James' email via secret
+    expect(draft.recipient).toBe('');
   });
 });

@@ -14,8 +14,7 @@ import type { Release, ScheduledTask } from './types';
  */
 
 export function buildEventTitle(release: Release, task: ScheduledTask): string {
-  const label = LABELS[release.label];
-  return `${label.shortCode} ${release.catalogueNumber} - ${release.artist} - ${task.title} (@${task.owner})`;
+  return `${release.catalogueNumber} - ${release.artist} - ${task.title} (@${task.owner})`;
 }
 
 export function buildEventDescription(release: Release, task: ScheduledTask): string {

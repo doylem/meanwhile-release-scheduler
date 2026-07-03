@@ -57,7 +57,7 @@ export interface TaskRule {
  * Edit here to change due dates/owners for the whole catalogue.
  */
 export const TASK_RULES: TaskRule[] = [
-  { id: 'prepare-masters', daysBeforeRelease: 21, title: 'Prepare masters for release', owner: 'Gavin' },
+  { id: 'prepare-masters', daysBeforeRelease: 21, title: 'Prepare masters for release', owner: 'Gavin', startMinute: 15 },
   { id: 'artwork-ideation', daysBeforeRelease: 21, title: 'Artwork ideation starts', owner: 'Matty' },
   { id: 'artwork-due', daysBeforeRelease: 19, title: 'Artwork due', owner: 'Matty' },
   { id: 'liner-notes-due', daysBeforeRelease: 16, title: 'Liner notes due', owner: 'James' },
