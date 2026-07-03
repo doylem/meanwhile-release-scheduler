@@ -1,0 +1,39 @@
+{
+  "requestId": "0735d2d5-3484-4ab9-b075-9a789bce7562",
+  "completedAt": "2026-07-03T08:06:38.115Z",
+  "ok": true,
+  "catalogueNumber": "MW091",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW091 - Maze 28 EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 4
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/c4oj3eyyt9k96146zhxhy/AAs69UtTmMGb-ioObPYexRY?rlkey=nyi0unhp1eeolstlu4qva9q0l&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/nqoa5b280h8jvfku621pp/AC0iR82ugB6PH2halr3jtKE?rlkey=cnbzoumv1o1vhnvw5e4oz6hp6&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/u37mgt9hdfo4yyjf8zs9y/ADfwnaDZejzg-gjYcKy5ylM?rlkey=6wsbvbimap4mjvq48500d5jua&dl=0"
+  }
+}
