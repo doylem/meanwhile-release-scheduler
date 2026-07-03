@@ -1,0 +1,15 @@
+{
+  "requestId": "e8b7d35b-a6c5-417c-aee4-bf3e25cb4194",
+  "completedAt": "2026-07-03T04:38:56.263Z",
+  "ok": true,
+  "draftId": "r-6092932814930435035",
+  "draft": {
+    "recipient": "meanwhilerec@gmail.com",
+    "subject": "MW090 - Fran Garay - Release assets",
+    "body": "Hi James!\n\nOur next release is here, 2 tracks from Fran Garay.\n\nAs semi usual we are racing the clock a bit and appreciate you pulling this together!\n\n1. Fran Garay - A Ruined World\n2. Fran Garay & Diego R - Closed Feelings\n\nRelease Date: Friday July 17th\n\nProgressive House\n\nMASTERS - Coming from Gavin\n\nARTWORK - Coming from Matty\n\nAs usual a big thanks for helping us getting this one together!\n\nG&M",
+    "missingAssets": [
+      "masters",
+      "artwork"
+    ]
+  }
+}
