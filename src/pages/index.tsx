@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { GithubStatusButton, GithubConnectModal } from "../components/GithubConnectGate";
+import {
+  GithubStatusButton,
+  GithubConnectModal,
+} from "../components/GithubConnectGate";
 import { PasswordGate } from "../components/PasswordGate";
 import { ReleaseDetail } from "../components/ReleaseDetail";
 import { ReleaseForm } from "../components/ReleaseForm";
@@ -16,10 +19,7 @@ import {
 } from "../lib/useReleaseManifest";
 import { useReleaseStates } from "../lib/useReleaseStates";
 import type { ReleaseState } from "../lib/types";
-import {
-  generateLocalId,
-  type LocalRelease,
-} from "../lib/localReleases";
+import { generateLocalId, type LocalRelease } from "../lib/localReleases";
 import { useSharedReleases } from "../lib/useSharedReleases";
 import type { Release, ReleaseInput } from "../lib/types";
 
@@ -71,7 +71,13 @@ function App() {
   const [release, setRelease] = useState<Release | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
-  const { releases: localReleases, loading: releasesLoading, syncing: releasesSyncing, save: saveRelease, remove: removeRelease } = useSharedReleases();
+  const {
+    releases: localReleases,
+    loading: releasesLoading,
+    syncing: releasesSyncing,
+    save: saveRelease,
+    remove: removeRelease,
+  } = useSharedReleases();
   const localReleasesRef = useRef<LocalRelease[]>([]);
   const [currentLocalId, setCurrentLocalId] = useState<string | null>(null);
   const currentLocalIdRef = useRef<string | null>(null);
@@ -94,24 +100,30 @@ function App() {
 
   const allCatalogueNumbers = useMemo(() => {
     const cats = new Set<string>();
-    localReleases.forEach((r) => { if (r.input.catalogueNumber) cats.add(r.input.catalogueNumber); });
+    localReleases.forEach((r) => {
+      if (r.input.catalogueNumber) cats.add(r.input.catalogueNumber);
+    });
     (manifestEntries ?? []).forEach((m) => cats.add(m.catalogueNumber));
     return [...cats];
   }, [localReleases, manifestEntries]);
 
-  const { states: releaseStates, refresh: refreshStates } = useReleaseStates(allCatalogueNumbers);
+  const { states: releaseStates, refresh: refreshStates } =
+    useReleaseStates(allCatalogueNumbers);
 
-  const handleAutoSave = useCallback((input: ReleaseInput) => {
-    const id = currentLocalIdRef.current;
-    if (!id || !input.artist.trim()) return;
-    const existing = localReleasesRef.current.find((r) => r.id === id);
-    saveRelease({
-      id,
-      savedAt: new Date().toISOString(),
-      input,
-      isScheduled: existing?.isScheduled ?? false,
-    });
-  }, [saveRelease]);
+  const handleAutoSave = useCallback(
+    (input: ReleaseInput) => {
+      const id = currentLocalIdRef.current;
+      if (!id || !input.artist.trim()) return;
+      const existing = localReleasesRef.current.find((r) => r.id === id);
+      saveRelease({
+        id,
+        savedAt: new Date().toISOString(),
+        input,
+        isScheduled: existing?.isScheduled ?? false,
+      });
+    },
+    [saveRelease],
+  );
 
   const handleSaveDraft = useCallback(
     (input: ReleaseInput) => {
@@ -121,9 +133,12 @@ function App() {
     [handleAutoSave],
   );
 
-  const handleDeleteLocal = useCallback((id: string) => {
-    removeRelease(id);
-  }, [removeRelease]);
+  const handleDeleteLocal = useCallback(
+    (id: string) => {
+      removeRelease(id);
+    },
+    [removeRelease],
+  );
 
   const handleScheduled = useCallback(() => {
     const id = currentLocalIdRef.current;
@@ -316,11 +331,16 @@ function App() {
                   refreshManifest();
                   const id = currentLocalIdRef.current;
                   if (id) {
-                    const existing = localReleasesRef.current.find((lr) => lr.id === id);
+                    const existing = localReleasesRef.current.find(
+                      (lr) => lr.id === id,
+                    );
                     if (existing) {
                       saveRelease({
                         ...existing,
-                        input: { ...existing.input, releaseDateISO: r.releaseDateISO },
+                        input: {
+                          ...existing.input,
+                          releaseDateISO: r.releaseDateISO,
+                        },
                       });
                     }
                   }
@@ -365,6 +385,7 @@ function LandingPage({
 }) {
   const { basePath } = useRouter();
   const [githubModalOpen, setGithubModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const localCoverageKeys = useMemo(
     () =>
       new Set(
@@ -492,38 +513,24 @@ function LandingPage({
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`${basePath}/meanwhile_RGB_logo_2023.png`}
-            alt="Meanwhile"
-            className="h-8 w-auto object-contain"
+            src={`${basePath}/meanwhile_RGB_logo_2023_scheduler.png`}
+            alt="Meanwhile Release Scheduler"
+            className="h-10 w-auto object-contain"
           />
-          <span className="text-muted text-sm font-mono">
-            / release scheduler
-          </span>
         </div>
-        <div className="flex items-center gap-4">
+        {/* Desktop controls */}
+        <div className="hidden sm:flex items-center gap-4">
           <GithubStatusButton onClick={() => setGithubModalOpen(true)} />
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <span
-              className={`font-mono text-xs ${dryRun ? "text-gold" : "text-cyan"}`}
-            >
-              {dryRun ? "Test mode" : "Live mode"}
-            </span>
-            <div
-              role="switch"
-              aria-checked={!dryRun}
-              onClick={() => setDryRun(!dryRun)}
-              className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-                dryRun ? "bg-gold/20" : "bg-cyan/25"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
-                  dryRun ? "translate-x-0 bg-gold/60" : "translate-x-5 bg-cyan"
-                }`}
-              />
-            </div>
-          </label>
+          <DryRunToggle dryRun={dryRun} setDryRun={setDryRun} />
         </div>
+        {/* Mobile: settings cog */}
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg border border-wire/20 bg-elevated/20 text-muted hover:text-snow hover:bg-elevated/35 transition-colors"
+          aria-label="Settings"
+        >
+          <CogIcon />
+        </button>
       </header>
 
       {dryRun && (
@@ -535,7 +542,18 @@ function LandingPage({
         </div>
       )}
 
-      {githubModalOpen && <GithubConnectModal onClose={() => setGithubModalOpen(false)} />}
+      {githubModalOpen && (
+        <GithubConnectModal onClose={() => setGithubModalOpen(false)} />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal
+          dryRun={dryRun}
+          setDryRun={setDryRun}
+          onOpenGithub={() => { setSettingsOpen(false); setGithubModalOpen(true); }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       <main className="relative z-10 px-8 py-10">
         {manifestError && (
@@ -557,7 +575,10 @@ function LandingPage({
               <div
                 key={i}
                 className="rounded-xl border border-wire/15 bg-surface overflow-hidden animate-pulse"
-                style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)", minHeight: 213 }}
+                style={{
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+                  minHeight: 213,
+                }}
               >
                 <div className="h-0.5 w-full bg-wire/10" />
                 <div className="p-5 space-y-4">
@@ -581,7 +602,10 @@ function LandingPage({
                       key={item.local.id}
                       local={item.local}
                       manifestEntries={manifestEntries}
-                      coverArtUrl={releaseStates[item.local.input.catalogueNumber]?.coverArtUrl}
+                      coverArtUrl={
+                        releaseStates[item.local.input.catalogueNumber]
+                          ?.coverArtUrl
+                      }
                       onEdit={() => onEditLocal(item.local)}
                       onActions={() => onActionsLocal(item.local)}
                       onDelete={() => onDeleteLocal(item.local.id)}
@@ -593,7 +617,9 @@ function LandingPage({
                     <ManifestOnlyCard
                       key={item.entry.releaseId}
                       entry={item.entry}
-                      coverArtUrl={releaseStates[item.entry.catalogueNumber]?.coverArtUrl}
+                      coverArtUrl={
+                        releaseStates[item.entry.catalogueNumber]?.coverArtUrl
+                      }
                       onActions={() => onActionsManifest(item.entry)}
                     />
                   );
@@ -627,7 +653,9 @@ function LandingPage({
                   key={local.id}
                   local={local}
                   manifestEntries={manifestEntries}
-                  coverArtUrl={releaseStates[local.input.catalogueNumber]?.coverArtUrl}
+                  coverArtUrl={
+                    releaseStates[local.input.catalogueNumber]?.coverArtUrl
+                  }
                   onEdit={() => onEditLocal(local)}
                   onActions={() => onActionsLocal(local)}
                   onDelete={() => onDeleteLocal(local.id)}
@@ -638,7 +666,9 @@ function LandingPage({
                 <ManifestOnlyCard
                   key={entry.releaseId}
                   entry={entry}
-                  coverArtUrl={releaseStates[entry.catalogueNumber]?.coverArtUrl}
+                  coverArtUrl={
+                    releaseStates[entry.catalogueNumber]?.coverArtUrl
+                  }
                   onActions={() => onActionsManifest(entry)}
                   isPast
                 />
@@ -785,7 +815,11 @@ function LocalReleaseCard({
           </div>
           {coverArtUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverArtUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20" />
+            <img
+              src={coverArtUrl}
+              alt=""
+              className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
+            />
           )}
         </div>
 
@@ -930,7 +964,11 @@ function ManifestOnlyCard({
           </div>
           {coverArtUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverArtUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20" />
+            <img
+              src={coverArtUrl}
+              alt=""
+              className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
+            />
           )}
         </div>
 
@@ -1043,6 +1081,100 @@ function SeedCard({ seed, onEdit }: { seed: SeedType; onEdit: () => void }) {
             className="w-full rounded-lg border border-wire/18 px-3 py-2 text-xs font-mono text-muted hover:text-snow hover:border-wire/35 hover:bg-wire/8 transition-all"
           >
             Set up →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared sub-components ───────────────────────────────────────────────────
+
+function DryRunToggle({ dryRun, setDryRun }: { dryRun: boolean; setDryRun: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+      <span className={`font-mono text-xs ${dryRun ? "text-gold" : "text-cyan"}`}>
+        {dryRun ? "Test mode" : "Live mode"}
+      </span>
+      <div
+        role="switch"
+        aria-checked={!dryRun}
+        onClick={() => setDryRun(!dryRun)}
+        className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
+          dryRun ? "bg-gold/20" : "bg-cyan/25"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
+            dryRun ? "translate-x-0 bg-gold/60" : "translate-x-5 bg-cyan"
+          }`}
+        />
+      </div>
+    </label>
+  );
+}
+
+function CogIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function SettingsModal({
+  dryRun,
+  setDryRun,
+  onOpenGithub,
+  onClose,
+}: {
+  dryRun: boolean;
+  setDryRun: (v: boolean) => void;
+  onOpenGithub: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-stretch p-0 sm:items-center sm:justify-center sm:p-4"
+      style={{ background: "rgba(4,8,16,0.80)", backdropFilter: "blur(8px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full rounded-t-2xl sm:rounded-2xl border border-wire/20 p-6 space-y-5"
+        style={{
+          background: "linear-gradient(170deg, #172c48 0%, #0f2035 100%)",
+          boxShadow: "0 -16px 48px rgba(0,0,0,0.6)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-mono font-semibold text-snow">Settings</p>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-wire/20 text-muted hover:text-snow hover:border-wire/40 hover:bg-wire/10 transition-all text-sm font-mono"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-xl border border-wire/15 bg-elevated/20 px-4 py-3">
+            <span className="text-sm font-mono text-muted">Mode</span>
+            <DryRunToggle dryRun={dryRun} setDryRun={setDryRun} />
+          </div>
+
+          <button
+            onClick={onOpenGithub}
+            className="w-full flex items-center justify-between rounded-xl border border-wire/15 bg-elevated/20 px-4 py-3 hover:bg-elevated/35 transition-colors"
+          >
+            <span className="text-sm font-mono text-muted">GitHub connection</span>
+            <GithubStatusButton onClick={onOpenGithub} />
           </button>
         </div>
       </div>
