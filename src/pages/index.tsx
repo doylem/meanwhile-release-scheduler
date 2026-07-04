@@ -8,10 +8,12 @@ import { PasswordGate } from "../components/PasswordGate";
 import { ReleaseDetail } from "../components/ReleaseDetail";
 import { ReleaseForm } from "../components/ReleaseForm";
 import { ReleasePreview } from "../components/ReleasePreview";
-import { GithubConnectionProvider } from "../lib/githubConnection";
+import { GithubConnectionProvider, useGithubConnection } from "../lib/githubConnection";
+import { SettingsProvider, useSettings } from "../lib/useSettings";
+import { findLabel, settingsToTaskRules } from "../lib/settings";
 import { buildRelease } from "../lib/release";
 import { isFriday, NotAFridayError } from "../lib/scheduling";
-import { LABELS, SEED_RELEASES } from "../../config/labels.config";
+import { SEED_RELEASES } from "../../config/labels.config";
 import { suggestNextCatalogueNumber } from "../lib/catalogue";
 import {
   useReleaseManifest,
@@ -27,7 +29,9 @@ export default function Home() {
   return (
     <PasswordGate>
       <GithubConnectionProvider>
-        <App />
+        <SettingsProvider>
+          <App />
+        </SettingsProvider>
       </GithubConnectionProvider>
     </PasswordGate>
   );
@@ -65,6 +69,7 @@ function isUpcoming(dateISO: string): boolean {
 }
 
 function App() {
+  const { settings } = useSettings();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>("form");
   const [pendingInput, setPendingInput] = useState<ReleaseInput | null>(null);
@@ -198,7 +203,7 @@ function App() {
 
   function openActionsLocal(local: LocalRelease) {
     try {
-      const built = buildRelease(local.input);
+      const built = buildRelease(local.input, settingsToTaskRules(settings.taskRules));
       setLocalId(local.id);
       setRelease(built);
       setPendingInput(local.input);
@@ -224,7 +229,7 @@ function App() {
         genre: "",
         notes: "",
       };
-      const built = buildRelease(input);
+      const built = buildRelease(input, settingsToTaskRules(settings.taskRules));
       setLocalId(null);
       setRelease(built);
       setPendingInput(input);
@@ -238,7 +243,7 @@ function App() {
 
   function handlePreview(input: ReleaseInput) {
     try {
-      const built = buildRelease(input);
+      const built = buildRelease(input, settingsToTaskRules(settings.taskRules));
       setRelease(built);
       setPendingInput(input);
       setFormError(null);
@@ -351,6 +356,20 @@ function App() {
         </ReleaseModal>
       )}
     </>
+  );
+}
+
+function AdminLink() {
+  const { connection } = useGithubConnection();
+  const { basePath } = useRouter();
+  if (!connection) return null;
+  return (
+    <a
+      href={`${basePath}/admin/`}
+      className="text-xs font-mono text-ghost hover:text-muted transition-colors"
+    >
+      Admin
+    </a>
   );
 }
 
@@ -520,6 +539,7 @@ function LandingPage({
         </div>
         {/* Desktop controls */}
         <div className="hidden sm:flex items-center gap-4">
+          <AdminLink />
           <GithubStatusButton onClick={() => setGithubModalOpen(true)} />
           <DryRunToggle dryRun={dryRun} setDryRun={setDryRun} />
         </div>
@@ -748,8 +768,9 @@ function LocalReleaseCard({
   onDelete: () => void;
   isPast?: boolean;
 }) {
+  const { settings } = useSettings();
   const { input } = local;
-  const label = LABELS[input.label];
+  const label = findLabel(settings.labels, input.label);
   const isRecordings = input.label === "meanwhile-recordings";
   const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
 
@@ -919,7 +940,8 @@ function ManifestOnlyCard({
   onActions: () => void;
   isPast?: boolean;
 }) {
-  const label = LABELS[entry.label];
+  const { settings } = useSettings();
+  const label = findLabel(settings.labels, entry.label);
   const isRecordings = entry.label === "meanwhile-recordings";
   const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
   const days = daysUntil(entry.releaseDateISO);
@@ -1024,7 +1046,8 @@ function ManifestOnlyCard({
 // ─── Card: seed / template (artist + date from config, not yet set up) ────────
 
 function SeedCard({ seed, onEdit }: { seed: SeedType; onEdit: () => void }) {
-  const label = LABELS[seed.label];
+  const { settings } = useSettings();
+  const label = findLabel(settings.labels, seed.label);
   const suggestedCat = suggestNextCatalogueNumber(label.latestCatalogueNumber);
   const days = daysUntil(seed.releaseDateISO);
   const isRecordings = seed.label === "meanwhile-recordings";
@@ -1134,6 +1157,9 @@ function SettingsModal({
   onOpenGithub: () => void;
   onClose: () => void;
 }) {
+  const { basePath } = useRouter();
+  const { connection } = useGithubConnection();
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     document.addEventListener("keydown", onKey);
@@ -1176,6 +1202,17 @@ function SettingsModal({
             <span className="text-sm font-mono text-muted">GitHub connection</span>
             <GithubStatusButton onClick={onOpenGithub} />
           </button>
+
+          {connection && (
+            <a
+              href={`${basePath}/admin/`}
+              onClick={onClose}
+              className="flex items-center justify-between rounded-xl border border-wire/15 bg-elevated/20 px-4 py-3 hover:bg-elevated/35 transition-colors"
+            >
+              <span className="text-sm font-mono text-muted">App settings</span>
+              <span className="text-xs font-mono text-ghost">→</span>
+            </a>
+          )}
         </div>
       </div>
     </div>

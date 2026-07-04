@@ -1,5 +1,4 @@
 import { createHash } from 'crypto';
-import type { LabelKey } from '../../config/labels.config';
 
 /**
  * Generates a stable, deterministic release ID from label, catalogue
@@ -9,7 +8,7 @@ import type { LabelKey } from '../../config/labels.config';
  * extendedProperties.private.releaseId and search for it.
  */
 export function generateReleaseId(input: {
-  label: LabelKey;
+  label: string;
   catalogueNumber: string;
   artist: string;
   releaseDateISO: string;
@@ -35,7 +34,7 @@ export function generateReleaseId(input: {
  * moving its date, search Google Calendar extendedProperties by this key
  * instead, then recompute and store a fresh releaseId alongside the new date.
  */
-export function generateCatalogueKey(input: { label: LabelKey; catalogueNumber: string; artist: string }): string {
+export function generateCatalogueKey(input: { label: string; catalogueNumber: string; artist: string }): string {
   return [input.label, normalize(input.catalogueNumber), normalize(input.artist)].join('|');
 }
 

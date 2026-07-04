@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { LABELS } from '../../config/labels.config';
 import { generateEmailDraft } from '../lib/email';
 import { useWorkflowAction, type ActionStatus } from '../lib/useWorkflowAction';
 import { isFriday, nextFriday } from '../lib/scheduling';
+import { useSettings } from '../lib/useSettings';
+import { findLabel } from '../lib/settings';
 import type { DropboxAssetCategory, DropboxAssetStatus, Release, ReleaseState } from '../lib/types';
 
 type DuplicateMode = 'cancel' | 'create-missing' | 'recreate-all' | 'update-existing';
@@ -66,7 +67,9 @@ export function ReleaseDetail({
   onStateChange?: () => void;
   dryRun: boolean;
 }) {
-  const label = LABELS[release.label];
+  const { settings } = useSettings();
+  const label = findLabel(settings.labels, release.label);
+  const features = settings.features;
 
   const dropbox = useWorkflowAction<DropboxResult>('check-dropbox-assets.yml');
   const calendar = useWorkflowAction<CreateReleaseResult>('create-release.yml');
@@ -78,7 +81,14 @@ export function ReleaseDetail({
   const [artworkLinkOverride, setArtworkLinkOverride] = useState('');
   const [newDate, setNewDate] = useState('');
   const [moveDateError, setMoveDateError] = useState<string | null>(null);
-  const [openSection, setOpenSection] = useState<SectionKey>('dropbox');
+  const defaultSection: SectionKey = features.dropbox
+    ? 'dropbox'
+    : features.calendar
+    ? 'calendar'
+    : features.email
+    ? 'email'
+    : 'move';
+  const [openSection, setOpenSection] = useState<SectionKey>(defaultSection);
   const [confirmSend, setConfirmSend] = useState(false);
 
   const mastersLink = mastersLinkOverride || dropbox.result?.sharedLinks?.masters;
@@ -101,19 +111,20 @@ export function ReleaseDetail({
   const calendarDone = Boolean(calendar.result?.ok && !calendar.result.cancelled);
   const emailDone = Boolean(email.result?.sent);
 
-  // Auto-progress: Dropbox done → open calendar; notify parent to refresh state
+  // Auto-progress: Dropbox done → open next enabled section
   useEffect(() => {
     if (dropbox.result?.ok) {
-      setOpenSection('calendar');
+      if (features.calendar) setOpenSection('calendar');
+      else if (features.email) setOpenSection('email');
       if (!dropbox.result.dryRun) onStateChange?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropbox.result]);
 
-  // Auto-progress: Calendar events created → open email; notify parent to refresh state
+  // Auto-progress: Calendar events created → open email if enabled
   useEffect(() => {
     if (calendar.result?.ok && !calendar.result.cancelled) {
-      setOpenSection('email');
+      if (features.email) setOpenSection('email');
       if (!calendar.result.dryRun) onStateChange?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,31 +209,19 @@ export function ReleaseDetail({
         )}
       </div>
 
-      {/* Step progress */}
-      <div className="flex items-center px-1">
-        {[
-          { label: 'Check files', done: dropboxDone },
-          { label: 'Calendar events', done: calendarDone },
-          { label: 'Send email', done: emailDone },
-        ].map((step, i, arr) => (
-          <div key={step.label} className="flex items-center flex-1 min-w-0">
-            <div className={`flex items-center gap-2 text-xs font-mono ${step.done ? 'text-lime' : 'text-muted'}`}>
-              <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
-                  step.done ? 'bg-lime/15 text-lime' : 'border border-wire/25 text-ghost'
-                }`}
-              >
-                {step.done ? '✓' : i + 1}
-              </span>
-              <span className="whitespace-nowrap">{step.label}</span>
-            </div>
-            {i < arr.length - 1 && <div className="flex-1 h-px bg-wire/15 mx-3 min-w-[12px]" />}
-          </div>
-        ))}
-      </div>
+      {/* Step progress — only shows enabled features */}
+      {(features.dropbox || features.calendar || features.email) && (
+        <StepProgress
+          steps={[
+            features.dropbox && { label: 'Check files', done: dropboxDone },
+            features.calendar && { label: 'Calendar events', done: calendarDone },
+            features.email && { label: 'Send email', done: emailDone },
+          ].filter((s): s is { label: string; done: boolean } => Boolean(s))}
+        />
+      )}
 
       {/* 1. Check release files */}
-      <CollapsibleSection
+      {features.dropbox && <CollapsibleSection
         number={1}
         title="Check release files"
         done={dropboxDone}
@@ -302,11 +301,11 @@ export function ReleaseDetail({
             </div>
           </div>
         )}
-      </CollapsibleSection>
+      </CollapsibleSection>}
 
       {/* 2. Create calendar events */}
-      <CollapsibleSection
-        number={2}
+      {features.calendar && <CollapsibleSection
+        number={features.dropbox ? 2 : 1}
         title="Create calendar events"
         done={calendarDone}
         open={openSection === 'calendar'}
@@ -370,11 +369,11 @@ export function ReleaseDetail({
             </button>
           </div>
         )}
-      </CollapsibleSection>
+      </CollapsibleSection>}
 
       {/* 3. Send release email */}
-      <CollapsibleSection
-        number={3}
+      {features.email && <CollapsibleSection
+        number={[features.dropbox, features.calendar].filter(Boolean).length + 1}
         title="Send release email"
         done={emailDone}
         open={openSection === 'email'}
@@ -460,11 +459,11 @@ export function ReleaseDetail({
             <p className="text-sm font-mono text-lime">✓ Email sent to {emailPreview.recipient}.</p>
           )}
         </div>
-      </CollapsibleSection>
+      </CollapsibleSection>}
 
-      {/* 4. Move release date (optional) */}
+      {/* Move release date (optional) */}
       <CollapsibleSection
-        number={4}
+        number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 1}
         title="Move release date"
         subtitle="Optional"
         done={move.result?.ok}
@@ -646,3 +645,25 @@ function formatDate(iso: string): string {
 
 const miniInputClass =
   'rounded-lg bg-depth/80 border border-wire/20 px-3 py-2 text-sm font-mono text-snow placeholder:text-ghost focus:outline-none focus:border-cyan/50 transition-colors w-full';
+
+function StepProgress({ steps }: { steps: { label: string; done: boolean }[] }) {
+  return (
+    <div className="flex items-center px-1">
+      {steps.map((step, i) => (
+        <div key={step.label} className="flex items-center flex-1 min-w-0">
+          <div className={`flex items-center gap-2 text-xs font-mono ${step.done ? 'text-lime' : 'text-muted'}`}>
+            <span
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                step.done ? 'bg-lime/15 text-lime' : 'border border-wire/25 text-ghost'
+              }`}
+            >
+              {step.done ? '✓' : i + 1}
+            </span>
+            <span className="whitespace-nowrap">{step.label}</span>
+          </div>
+          {i < steps.length - 1 && <div className="flex-1 h-px bg-wire/15 mx-3 min-w-[12px]" />}
+        </div>
+      ))}
+    </div>
+  );
+}

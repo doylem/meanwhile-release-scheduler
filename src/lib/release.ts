@@ -1,3 +1,4 @@
+import type { TaskRule } from '../../config/labels.config';
 import { generateReleaseId } from './releaseId';
 import { assertFriday, generateTasks } from './scheduling';
 import type { Release, ReleaseInput } from './types';
@@ -10,11 +11,11 @@ import type { Release, ReleaseInput } from './types';
  * Throws NotAFridayError if releaseDateISO isn't a Friday — callers in the
  * UI should catch this and show the validation message inline.
  */
-export function buildRelease(input: ReleaseInput): Release {
+export function buildRelease(input: ReleaseInput, rules?: TaskRule[]): Release {
   assertFriday(input.releaseDateISO);
   return {
     ...input,
     releaseId: generateReleaseId(input),
-    tasks: generateTasks(input.releaseDateISO),
+    tasks: generateTasks(input.releaseDateISO, undefined, rules),
   };
 }

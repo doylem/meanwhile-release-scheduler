@@ -9,16 +9,26 @@
  * Never run directly with secrets you don't trust — this script makes
  * real Google Calendar API calls unless DRY_RUN=true.
  */
-import { buildEventResource, createEvent, deleteEvent, findEventsByReleaseId, updateEvent } from '../src/lib/calendar';
-import { calendarConfigFromEnv, isDryRun, requireEnv } from './lib/env';
-import { writeResult } from './lib/result';
-import { writePendingManifestEntry } from './lib/manifest';
-import { writePendingState } from './lib/state';
-import { buildRelease } from '../src/lib/release';
-import { NotAFridayError } from '../src/lib/scheduling';
-import type { ReleaseInput } from '../src/lib/types';
+import {
+  buildEventResource,
+  createEvent,
+  deleteEvent,
+  findEventsByReleaseId,
+  updateEvent,
+} from "../src/lib/calendar";
+import { calendarConfigFromEnv, isDryRun, requireEnv } from "./lib/env";
+import { writeResult } from "./lib/result";
+import { writePendingManifestEntry } from "./lib/manifest";
+import { writePendingState } from "./lib/state";
+import { buildRelease } from "../src/lib/release";
+import { NotAFridayError } from "../src/lib/scheduling";
+import type { ReleaseInput } from "../src/lib/types";
 
-type DuplicateMode = 'cancel' | 'create-missing' | 'recreate-all' | 'update-existing';
+type DuplicateMode =
+  | "cancel"
+  | "create-missing"
+  | "recreate-all"
+  | "update-existing";
 
 interface CreateReleasePayload {
   release: ReleaseInput;
@@ -27,9 +37,9 @@ interface CreateReleasePayload {
 }
 
 async function main() {
-  const requestId = requireEnv('REQUEST_ID');
-  const payload: CreateReleasePayload = JSON.parse(requireEnv('PAYLOAD_JSON'));
-  const mode: DuplicateMode = payload.mode ?? 'create-missing';
+  const requestId = requireEnv("REQUEST_ID");
+  const payload: CreateReleasePayload = JSON.parse(requireEnv("PAYLOAD_JSON"));
+  const mode: DuplicateMode = payload.mode ?? "create-missing";
   const dryRun = isDryRun();
 
   let release;
@@ -43,8 +53,10 @@ async function main() {
     throw err;
   }
 
-  const reminderSettings = { emailRemindersEnabled: Boolean(payload.emailRemindersEnabled) };
-  const timeZone = 'Australia/Melbourne';
+  const reminderSettings = {
+    emailRemindersEnabled: Boolean(payload.emailRemindersEnabled),
+  };
+  const timeZone = "Australia/Melbourne";
 
   const plans = release.tasks.map((task) => ({
     task,
@@ -63,14 +75,20 @@ async function main() {
         start: p.resource.start,
       })),
     });
-    console.log('[DRY RUN] Would create/update calendar events:', JSON.stringify(plans, null, 2));
+    console.log(
+      "[DRY RUN] Would create/update calendar events:",
+      JSON.stringify(plans, null, 2),
+    );
     return;
   }
 
   const calendarConfig = calendarConfigFromEnv();
-  const existing = await findEventsByReleaseId(calendarConfig, release.releaseId);
+  const existing = await findEventsByReleaseId(
+    calendarConfig,
+    release.releaseId,
+  );
 
-  if (existing.length > 0 && mode === 'cancel') {
+  if (existing.length > 0 && mode === "cancel") {
     writeResult(requestId, {
       ok: true,
       cancelled: true,
@@ -81,23 +99,39 @@ async function main() {
   }
 
   const existingByTaskId = new Map(
-    existing.map((e) => [e.extendedProperties?.private?.taskId ?? '', e])
+    existing.map((e) => [e.extendedProperties?.private?.taskId ?? "", e]),
   );
 
-  const createdEvents: { taskId: string; eventId: string; htmlLink?: string }[] = [];
+  const createdEvents: {
+    taskId: string;
+    eventId: string;
+    htmlLink?: string;
+  }[] = [];
 
   for (const plan of plans) {
     const existingEvent = existingByTaskId.get(plan.task.id);
 
     if (existingEvent?.id) {
-      if (mode === 'update-existing' || mode === 'recreate-all') {
-        if (mode === 'recreate-all') {
+      if (mode === "update-existing" || mode === "recreate-all") {
+        if (mode === "recreate-all") {
           await deleteEvent(calendarConfig, existingEvent.id);
           const created = await createEvent(calendarConfig, plan.resource);
-          createdEvents.push({ taskId: plan.task.id, eventId: created.id ?? '', htmlLink: created.htmlLink ?? undefined });
+          createdEvents.push({
+            taskId: plan.task.id,
+            eventId: created.id ?? "",
+            htmlLink: created.htmlLink ?? undefined,
+          });
         } else {
-          const updated = await updateEvent(calendarConfig, existingEvent.id, plan.resource);
-          createdEvents.push({ taskId: plan.task.id, eventId: updated.id ?? '', htmlLink: updated.htmlLink ?? undefined });
+          const updated = await updateEvent(
+            calendarConfig,
+            existingEvent.id,
+            plan.resource,
+          );
+          createdEvents.push({
+            taskId: plan.task.id,
+            eventId: updated.id ?? "",
+            htmlLink: updated.htmlLink ?? undefined,
+          });
         }
       }
       // mode === 'create-missing': leave the existing event untouched.
@@ -105,7 +139,11 @@ async function main() {
     }
 
     const created = await createEvent(calendarConfig, plan.resource);
-    createdEvents.push({ taskId: plan.task.id, eventId: created.id ?? '', htmlLink: created.htmlLink ?? undefined });
+    createdEvents.push({
+      taskId: plan.task.id,
+      eventId: created.id ?? "",
+      htmlLink: created.htmlLink ?? undefined,
+    });
   }
 
   writeResult(requestId, {
@@ -122,7 +160,10 @@ async function main() {
   writePendingManifestEntry(release);
   writePendingState({
     catalogueNumber: release.catalogueNumber,
-    calendar: { scheduledAt: new Date().toISOString(), eventCount: createdEvents.length },
+    calendar: {
+      scheduledAt: new Date().toISOString(),
+      eventCount: createdEvents.length,
+    },
   });
 }
 
@@ -130,7 +171,10 @@ main().catch((err) => {
   console.error(err);
   const requestId = process.env.REQUEST_ID;
   if (requestId) {
-    writeResult(requestId, { ok: false, error: err instanceof Error ? err.message : String(err) });
+    writeResult(requestId, {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
   process.exitCode = 1;
 });

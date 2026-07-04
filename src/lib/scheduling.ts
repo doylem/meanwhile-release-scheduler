@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { DEFAULT_TIMEZONE, EVENT_TIME, TASK_RULES } from '../../config/labels.config';
+import { DEFAULT_TIMEZONE, EVENT_TIME, TASK_RULES, type TaskRule } from '../../config/labels.config';
 import type { ScheduledTask } from './types';
 
 /**
@@ -60,9 +60,13 @@ export function nextFriday(dateISO: string, zone: string = DEFAULT_TIMEZONE): st
  * Friday-ness separately (assertFriday) so this can also be used to preview
  * "what would this look like" before the date is finalized.
  */
-export function generateTasks(releaseDateISO: string, zone: string = DEFAULT_TIMEZONE): ScheduledTask[] {
+export function generateTasks(
+  releaseDateISO: string,
+  zone: string = DEFAULT_TIMEZONE,
+  rules: TaskRule[] = TASK_RULES
+): ScheduledTask[] {
   const releaseDate = parseLocalDate(releaseDateISO, zone);
-  return TASK_RULES.map((rule) => {
+  return rules.map((rule) => {
     const due = releaseDate.minus({ days: rule.daysBeforeRelease });
     return {
       id: rule.id,

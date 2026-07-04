@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LABELS, type LabelKey } from '../../config/labels.config';
 import { ArtistAutocomplete } from './ArtistAutocomplete';
 import { suggestNextCatalogueNumber } from '../lib/catalogue';
 import { getAllArtists, saveCustomArtist } from '../lib/artists';
 import { isFriday, nextFriday } from '../lib/scheduling';
+import { useSettings } from '../lib/useSettings';
+import { DEFAULT_SETTINGS, type LabelSettings } from '../lib/settings';
 import type { ReleaseInput, Track } from '../lib/types';
 
-const labelOptions = Object.values(LABELS);
-
-function emptyForm(): ReleaseInput {
-  const firstLabel = labelOptions[0]!;
+function emptyForm(labels: LabelSettings[]): ReleaseInput {
+  const firstLabel = labels[0] ?? DEFAULT_SETTINGS.labels[0]!;
   return {
     label: firstLabel.key,
     catalogueNumber: suggestNextCatalogueNumber(firstLabel.latestCatalogueNumber),
@@ -35,7 +34,9 @@ export function ReleaseForm({
   onAutoSave?: (input: ReleaseInput) => void;
   onSaveDraft?: (input: ReleaseInput) => void;
 }) {
-  const [form, setForm] = useState<ReleaseInput>(initial ?? emptyForm());
+  const { settings } = useSettings();
+  const labelOptions = settings.labels;
+  const [form, setForm] = useState<ReleaseInput>(() => initial ?? emptyForm(labelOptions));
   const [catalogueOverridden, setCatalogueOverridden] = useState(Boolean(initial));
   const [dateError, setDateError] = useState<string | null>(null);
   const [allArtists, setAllArtists] = useState<string[]>(getAllArtists);
@@ -94,13 +95,14 @@ export function ReleaseForm({
     return result;
   }, [form.artist, form.tracks]);
 
-  function setLabel(label: LabelKey) {
+  function setLabel(label: string) {
+    const config = labelOptions.find((l) => l.key === label) ?? labelOptions[0]!;
     setForm((f) => ({
       ...f,
       label,
       catalogueNumber: catalogueOverridden
         ? f.catalogueNumber
-        : suggestNextCatalogueNumber(LABELS[label].latestCatalogueNumber),
+        : suggestNextCatalogueNumber(config.latestCatalogueNumber),
     }));
   }
 
@@ -167,7 +169,7 @@ export function ReleaseForm({
       {/* Label + Catalogue */}
       <div className="grid grid-cols-2 gap-4">
         <Field label="Label">
-          <select value={form.label} onChange={(e) => setLabel(e.target.value as LabelKey)} className={inputClass}>
+          <select value={form.label} onChange={(e) => setLabel(e.target.value)} className={inputClass}>
             {labelOptions.map((l) => (
               <option key={l.key} value={l.key}>{l.name}</option>
             ))}

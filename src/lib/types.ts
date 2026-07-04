@@ -1,5 +1,3 @@
-import type { LabelKey, TaskOwner } from '../../config/labels.config';
-
 export interface Track {
   title: string;
   artist?: string;       // overrides release artist for this track (e.g. collab)
@@ -7,7 +5,7 @@ export interface Track {
 }
 
 export interface ReleaseInput {
-  label: LabelKey;
+  label: string;
   catalogueNumber: string;
   artist: string;
   releaseTitle: string;
@@ -23,7 +21,7 @@ export interface ReleaseInput {
 export interface ScheduledTask {
   id: string; // task rule id, stable across recalculation
   title: string;
-  owner: TaskOwner;
+  owner: string;
   /** ISO date string YYYY-MM-DD in Australia/Melbourne local time. */
   dueDateISO: string;
   daysBeforeRelease: number;
@@ -87,7 +85,7 @@ export interface ReleaseState {
 
 export interface ManifestEntry {
   releaseId: string;
-  label: LabelKey;
+  label: string;
   artist: string;
   releaseTitle: string;
   catalogueNumber: string;

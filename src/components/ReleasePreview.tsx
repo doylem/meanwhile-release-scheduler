@@ -1,4 +1,5 @@
-import { LABELS } from '../../config/labels.config';
+import { useSettings } from '../lib/useSettings';
+import { findLabel } from '../lib/settings';
 import type { Release } from '../lib/types';
 
 export function ReleasePreview({
@@ -10,7 +11,8 @@ export function ReleasePreview({
   onBack: () => void;
   onConfirm: () => void;
 }) {
-  const label = LABELS[release.label];
+  const { settings } = useSettings();
+  const label = findLabel(settings.labels, release.label);
 
   return (
     <div className="space-y-8">

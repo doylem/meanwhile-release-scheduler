@@ -1,5 +1,5 @@
 import type { calendar_v3 } from 'googleapis';
-import { LABELS } from '../../config/labels.config';
+import { DEFAULT_SETTINGS, findLabel } from './settings';
 import { generateCatalogueKey } from './releaseId';
 import { buildEventTimes } from './scheduling';
 import type { Release, ScheduledTask } from './types';
@@ -18,7 +18,7 @@ export function buildEventTitle(release: Release, task: ScheduledTask): string {
 }
 
 export function buildEventDescription(release: Release, task: ScheduledTask): string {
-  const label = LABELS[release.label];
+  const label = findLabel(DEFAULT_SETTINGS.labels, release.label);
   const tracklist = release.tracks
     .map((t, i) => {
       const artist = t.artist ? `${t.artist} — ` : '';
