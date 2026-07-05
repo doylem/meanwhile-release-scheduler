@@ -248,23 +248,8 @@ function main() {
   copyFile(TEMPLATE_DIR + "/" + PSB_TRACKS, ASSETS_DIR + "/" + PSB_TRACKS);
   copyFile(TEMPLATE_DIR + "/" + PSB_CAT,    ASSETS_DIR + "/" + PSB_CAT);
 
-  // 3. Open the template TIF — close any stale open copy first so PS re-reads from disk
-  var tifFile = new File(TEMPLATE_DIR + "/" + TEMPLATE_TIF);
-  for (var i = app.documents.length - 1; i >= 0; i--) {
-    try {
-      if (app.documents[i].fullName.fsName === tifFile.fsName) {
-        app.documents[i].close(SaveOptions.DONOTSAVECHANGES);
-        break;
-      }
-    } catch(e) {}
-  }
-  open(tifFile);
-
-  alert(
-    CAT_NUMBER + " is ready.\n\n" +
-    "Add your artwork to " + MARK_PSB + " and save — the TIF updates automatically.\n\n" +
-    "When done, use File > Export to export your assets."
-  );
+  // 3. Open the release TIF — System Events will trigger Update All Modified Content after this returns
+  open(new File(ASSETS_DIR + "/" + CAT_NUMBER + " - Release Assets.tif"));
 }
 
 function copyFile(srcPath, dstPath) {
@@ -304,13 +289,24 @@ JSXEOF
 # ── RUN IN PHOTOSHOP ──────────────────────────────────────────────────────────
 print ""
 print -P "  %F{cyan}Running script in Photoshop...%f"
-osascript << APPLEEOF
+osascript << APPLEEOF > /dev/null
 tell application "Adobe Photoshop 2026"
   do javascript of file "${JSX_FILE}"
 end tell
 APPLEEOF
+
+# Click Layer > Smart Objects > Update All Modified Content via UI automation
+osascript << APPLEEOF > /dev/null
+delay 1
+tell application "System Events"
+  tell process "Adobe Photoshop 2026"
+    click menu item "Update All Modified Content" of menu 1 of menu item "Smart Objects" of menu 1 of menu bar item "Layer" of menu bar 1
+  end tell
+end tell
+APPLEEOF
+
 print ""
-print -P "  %F{white}Done. Open your mark file to add artwork:%f"
-print -P "  %F{cyan}${TEMPLATE_DIR}/%F{white}${MARK_PSB}%f"
+print -P "  %F{white}Done. Add your artwork to:%f"
+print -P "  %F{cyan}${TEMPLATE_DIR}/${MARK_PSB}%f"
 print -P "  %F{white}Save it and the TIF updates automatically.%f"
 print ""
