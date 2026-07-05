@@ -50,7 +50,7 @@ const CATEGORY_LABELS: Record<DropboxAssetCategory, string> = {
   remixPacks: 'Remix packs',
 };
 
-type SectionKey = 'dropbox' | 'calendar' | 'email' | 'move';
+type SectionKey = 'dropbox' | 'calendar' | 'email' | 'artwork' | 'move';
 
 export function ReleaseDetail({
   release,
@@ -136,9 +136,10 @@ export function ReleaseDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarDone]);
 
-  // Notify parent when email is drafted
+  // Notify parent when email is drafted; open artwork step when email is sent
   useEffect(() => {
     if (email.result?.draftId && !email.result.dryRun) onStateChange?.();
+    if (email.result?.sent) setOpenSection('artwork');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email.result]);
 
@@ -208,9 +209,6 @@ export function ReleaseDetail({
           />
         )}
       </div>
-
-      {/* Artwork setup command — copy into terminal to generate Photoshop files */}
-      <ArtworkCommand release={release} labelShortCode={label.shortCode} />
 
       {/* Step progress — only shows enabled features */}
       {(features.dropbox || features.calendar || features.email) && (
@@ -464,9 +462,23 @@ export function ReleaseDetail({
         </div>
       </CollapsibleSection>}
 
-      {/* Move release date (optional) */}
+      {/* Generate artwork */}
       <CollapsibleSection
         number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 1}
+        title="Generate artwork"
+        subtitle="Run in terminal"
+        open={openSection === 'artwork'}
+        onToggle={() => toggle('artwork')}
+      >
+        <p className="text-xs font-mono text-muted">
+          Copy this command into your terminal to set up the Photoshop files in Dropbox.
+        </p>
+        <ArtworkCommand release={release} labelShortCode={label.shortCode} />
+      </CollapsibleSection>
+
+      {/* Move release date (optional) */}
+      <CollapsibleSection
+        number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 2}
         title="Move release date"
         subtitle="Optional"
         done={move.result?.ok}
