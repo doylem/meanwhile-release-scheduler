@@ -14,7 +14,7 @@ import { findLabel, settingsToTaskRules } from "../lib/settings";
 import { buildRelease } from "../lib/release";
 import { isFriday, NotAFridayError } from "../lib/scheduling";
 import { SEED_RELEASES } from "../../config/labels.config";
-import { suggestNextCatalogueNumber } from "../lib/catalogue";
+import { suggestNextCatalogueNumber, suggestForLabel } from "../lib/catalogue";
 import {
   useReleaseManifest,
   type ManifestEntry,
@@ -111,6 +111,13 @@ function App() {
     (manifestEntries ?? []).forEach((m) => cats.add(m.catalogueNumber));
     return [...cats];
   }, [localReleases, manifestEntries]);
+
+  const existingReleases = useMemo(() => [
+    ...localReleases
+      .filter((r) => r.input.catalogueNumber)
+      .map((r) => ({ label: r.input.label, catalogueNumber: r.input.catalogueNumber })),
+    ...(manifestEntries ?? []).map((m) => ({ label: m.label, catalogueNumber: m.catalogueNumber })),
+  ], [localReleases, manifestEntries]);
 
   const { states: releaseStates, refresh: refreshStates } =
     useReleaseStates(allCatalogueNumbers);
@@ -265,6 +272,7 @@ function App() {
         manifestEntries={manifestEntries}
         manifestError={manifestError}
         releaseStates={releaseStates}
+        existingReleases={existingReleases}
         onNewRelease={openFormNew}
         onEditLocal={openFormEdit}
         onActionsLocal={openActionsLocal}
@@ -313,6 +321,7 @@ function App() {
                 initial={pendingInput ?? undefined}
                 onAutoSave={handleAutoSave}
                 onSaveDraft={handleSaveDraft}
+                existingReleases={existingReleases}
               />
             )}
 
@@ -379,6 +388,7 @@ function LandingPage({
   manifestEntries,
   manifestError,
   releaseStates,
+  existingReleases,
   onNewRelease,
   onEditLocal,
   onActionsLocal,
@@ -393,6 +403,7 @@ function LandingPage({
   manifestEntries: ManifestEntry[] | null;
   manifestError: string | null;
   releaseStates: Record<string, ReleaseState>;
+  existingReleases: Array<{ label: string; catalogueNumber: string }>;
   onNewRelease: () => void;
   onEditLocal: (local: LocalRelease) => void;
   onActionsLocal: (local: LocalRelease) => void;
@@ -648,6 +659,7 @@ function LandingPage({
                   <SeedCard
                     key={i}
                     seed={item.seed}
+                    existingReleases={existingReleases}
                     onEdit={() => onEditSeed(item.seed)}
                   />
                 );
@@ -1045,10 +1057,18 @@ function ManifestOnlyCard({
 
 // ─── Card: seed / template (artist + date from config, not yet set up) ────────
 
-function SeedCard({ seed, onEdit }: { seed: SeedType; onEdit: () => void }) {
+function SeedCard({
+  seed,
+  existingReleases,
+  onEdit,
+}: {
+  seed: SeedType;
+  existingReleases: Array<{ label: string; catalogueNumber: string }>;
+  onEdit: () => void;
+}) {
   const { settings } = useSettings();
   const label = findLabel(settings.labels, seed.label);
-  const suggestedCat = suggestNextCatalogueNumber(label.latestCatalogueNumber);
+  const suggestedCat = suggestForLabel(existingReleases, seed.label, label.shortCode);
   const days = daysUntil(seed.releaseDateISO);
   const isRecordings = seed.label === "meanwhile-recordings";
   const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";

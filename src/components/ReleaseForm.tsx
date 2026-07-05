@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArtistAutocomplete } from './ArtistAutocomplete';
-import { suggestNextCatalogueNumber } from '../lib/catalogue';
+import { suggestForLabel } from '../lib/catalogue';
 import { getAllArtists, saveCustomArtist } from '../lib/artists';
 import { isFriday, nextFriday } from '../lib/scheduling';
 import { useSettings } from '../lib/useSettings';
 import { DEFAULT_SETTINGS, type LabelSettings } from '../lib/settings';
 import type { ReleaseInput, Track } from '../lib/types';
 
-function emptyForm(labels: LabelSettings[]): ReleaseInput {
+type ExistingRelease = { label: string; catalogueNumber: string };
+
+function emptyForm(labels: LabelSettings[], existingReleases: ExistingRelease[]): ReleaseInput {
   const firstLabel = labels[0] ?? DEFAULT_SETTINGS.labels[0]!;
   return {
     label: firstLabel.key,
-    catalogueNumber: suggestNextCatalogueNumber(firstLabel.latestCatalogueNumber),
+    catalogueNumber: suggestForLabel(existingReleases, firstLabel.key, firstLabel.shortCode),
     artist: '',
     releaseTitle: '',
     tracks: [{ title: '' }],
@@ -28,15 +30,17 @@ export function ReleaseForm({
   initial,
   onAutoSave,
   onSaveDraft,
+  existingReleases = [],
 }: {
   onPreview: (input: ReleaseInput) => void;
   initial?: ReleaseInput;
   onAutoSave?: (input: ReleaseInput) => void;
   onSaveDraft?: (input: ReleaseInput) => void;
+  existingReleases?: ExistingRelease[];
 }) {
   const { settings } = useSettings();
   const labelOptions = settings.labels;
-  const [form, setForm] = useState<ReleaseInput>(() => initial ?? emptyForm(labelOptions));
+  const [form, setForm] = useState<ReleaseInput>(() => initial ?? emptyForm(labelOptions, existingReleases));
   const [catalogueOverridden, setCatalogueOverridden] = useState(Boolean(initial));
   const [dateError, setDateError] = useState<string | null>(null);
   const [allArtists, setAllArtists] = useState<string[]>(getAllArtists);
@@ -102,7 +106,7 @@ export function ReleaseForm({
       label,
       catalogueNumber: catalogueOverridden
         ? f.catalogueNumber
-        : suggestNextCatalogueNumber(config.latestCatalogueNumber),
+        : suggestForLabel(existingReleases, label, config.shortCode),
     }));
   }
 

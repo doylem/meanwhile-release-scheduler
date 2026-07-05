@@ -154,7 +154,7 @@ function LabelsSection({
   function addLabel() {
     onChange([
       ...labels,
-      { key: `label-${Date.now()}`, name: 'New Label', shortCode: 'NL', latestCatalogueNumber: 'NL001' },
+      { key: `label-${Date.now()}`, name: 'New Label', shortCode: 'NL' },
     ]);
   }
 
@@ -167,14 +167,14 @@ function LabelsSection({
   }
 
   return (
-    <Section title="Record Labels" description="Labels used across releases. Short code appears in calendar titles and catalogue numbers.">
+    <Section title="Record Labels" description="Labels used across releases. Short code appears in calendar titles and catalogue numbers. The next catalogue number is derived automatically from your existing releases.">
       <div className="space-y-3">
         {labels.map((label, idx) => (
           <div
             key={label.key}
             className="rounded-xl border border-wire/20 bg-elevated/20 p-4 space-y-3"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Name">
                 <Input
                   value={label.name}
@@ -188,13 +188,6 @@ function LabelsSection({
                   onChange={(v) => updateLabel(idx, { shortCode: v.toUpperCase() })}
                   placeholder="MW"
                   maxLength={6}
-                />
-              </Field>
-              <Field label="Latest Cat #">
-                <Input
-                  value={label.latestCatalogueNumber}
-                  onChange={(v) => updateLabel(idx, { latestCatalogueNumber: v.toUpperCase() })}
-                  placeholder="MW089"
                 />
               </Field>
             </div>

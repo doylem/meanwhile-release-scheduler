@@ -5,7 +5,6 @@ export interface LabelSettings {
   key: string;
   name: string;
   shortCode: string;
-  latestCatalogueNumber: string;
 }
 
 export interface TaskRuleSettings {
@@ -36,7 +35,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     key: l.key,
     name: l.name,
     shortCode: l.shortCode,
-    latestCatalogueNumber: l.latestCatalogueNumber,
   })),
   owners: ['Gavin', 'Matty', 'James'],
   timezone: DEFAULT_TIMEZONE,
@@ -63,7 +61,6 @@ export function findLabel(labels: LabelSettings[], key: string): LabelSettings {
       key,
       name: key,
       shortCode: key.split('-')[0]?.toUpperCase() ?? key,
-      latestCatalogueNumber: '',
     }
   );
 }

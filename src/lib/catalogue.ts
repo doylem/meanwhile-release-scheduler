@@ -25,3 +25,37 @@ export function suggestNextCatalogueNumber(latest: string): string {
   const next = (parseInt(digits, 10) + 1).toString().padStart(width, '0');
   return `${prefix}${next}`;
 }
+
+/**
+ * Finds the highest catalogue number for a given label key from the live
+ * releases list. Returns null if no releases exist for that label yet.
+ */
+export function latestFromReleases(
+  releases: Array<{ label: string; catalogueNumber: string }>,
+  labelKey: string
+): string | null {
+  const candidates = releases
+    .filter((r) => r.label === labelKey && r.catalogueNumber)
+    .map((r) => {
+      const m = r.catalogueNumber.match(/^([A-Za-z]+)(\d+)$/);
+      return m ? { cat: r.catalogueNumber, num: parseInt(m[2]!, 10) } : null;
+    })
+    .filter((x): x is { cat: string; num: number } => x !== null);
+
+  if (candidates.length === 0) return null;
+  return candidates.reduce((a, b) => (a.num >= b.num ? a : b)).cat;
+}
+
+/**
+ * Suggests the next catalogue number for a label, derived from existing
+ * releases. Falls back to {shortCode}001 if no releases exist yet.
+ */
+export function suggestForLabel(
+  releases: Array<{ label: string; catalogueNumber: string }>,
+  labelKey: string,
+  shortCode: string
+): string {
+  const latest = latestFromReleases(releases, labelKey);
+  if (latest) return suggestNextCatalogueNumber(latest);
+  return `${shortCode}001`;
+}
