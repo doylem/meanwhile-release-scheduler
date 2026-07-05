@@ -648,8 +648,6 @@ function ErrorLine({ children }: { children: React.ReactNode }) {
 }
 
 function ArtworkCommand({ release, labelShortCode }: { release: Release; labelShortCode: string }) {
-  const [copied, setCopied] = useState(false);
-
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const cmd = [
     './scripts/new-release.sh',
@@ -660,22 +658,32 @@ function ArtworkCommand({ release, labelShortCode }: { release: Release; labelSh
     ...release.tracks.map((t) => `"${esc(t.title)}"`),
   ].join(' ');
 
+  const [value, setValue] = useState(cmd);
+  const [copied, setCopied] = useState(false);
+
   function copy() {
-    navigator.clipboard.writeText(cmd).catch(() => {});
+    navigator.clipboard.writeText(value).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   return (
-    <div className="rounded-xl border border-wire/15 bg-elevated/25 px-4 py-3 flex items-center gap-3 min-w-0">
-      <span className="text-[10px] font-mono uppercase tracking-wider text-ghost flex-shrink-0">artwork</span>
-      <code className="flex-1 text-xs font-mono text-snow/50 truncate min-w-0">{cmd}</code>
-      <button
-        onClick={copy}
-        className="flex-shrink-0 text-xs font-mono text-cyan hover:text-cyan/70 transition-colors"
-      >
-        {copied ? '✓ copied' : 'copy'}
-      </button>
+    <div className="space-y-2">
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={3}
+        className="w-full rounded-lg bg-elevated/60 border border-wire/20 px-4 py-3 text-xs font-mono text-snow/80 resize-y focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/15 transition-colors"
+        spellCheck={false}
+      />
+      <div className="flex justify-end">
+        <button
+          onClick={copy}
+          className="text-xs font-mono text-cyan hover:text-cyan/70 transition-colors"
+        >
+          {copied ? '✓ copied' : 'copy command'}
+        </button>
+      </div>
     </div>
   );
 }
