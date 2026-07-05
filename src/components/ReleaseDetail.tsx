@@ -209,6 +209,9 @@ export function ReleaseDetail({
         )}
       </div>
 
+      {/* Artwork setup command — copy into terminal to generate Photoshop files */}
+      <ArtworkCommand release={release} labelShortCode={label.shortCode} />
+
       {/* Step progress — only shows enabled features */}
       {(features.dropbox || features.calendar || features.email) && (
         <StepProgress
@@ -629,6 +632,39 @@ function ErrorLine({ children }: { children: React.ReactNode }) {
     <p className="text-signal text-sm font-mono bg-signal/10 border border-signal/20 rounded-lg px-4 py-2.5">
       {children}
     </p>
+  );
+}
+
+function ArtworkCommand({ release, labelShortCode }: { release: Release; labelShortCode: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const cmd = [
+    './scripts/new-release.sh',
+    labelShortCode,
+    `"${esc(release.catalogueNumber)}"`,
+    `"${esc(release.artist)}"`,
+    `"${esc(release.releaseTitle)}"`,
+    ...release.tracks.map((t) => `"${esc(t.title)}"`),
+  ].join(' ');
+
+  function copy() {
+    navigator.clipboard.writeText(cmd).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="rounded-xl border border-wire/15 bg-elevated/25 px-4 py-3 flex items-center gap-3 min-w-0">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-ghost flex-shrink-0">artwork</span>
+      <code className="flex-1 text-xs font-mono text-snow/50 truncate min-w-0">{cmd}</code>
+      <button
+        onClick={copy}
+        className="flex-shrink-0 text-xs font-mono text-cyan hover:text-cyan/70 transition-colors"
+      >
+        {copied ? '✓ copied' : 'copy'}
+      </button>
+    </div>
   );
 }
 
