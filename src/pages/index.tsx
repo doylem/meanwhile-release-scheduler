@@ -12,7 +12,7 @@ import { GithubConnectionProvider, useGithubConnection } from "../lib/githubConn
 import { SettingsProvider, useSettings } from "../lib/useSettings";
 import { findLabel, settingsToTaskRules } from "../lib/settings";
 import { buildRelease } from "../lib/release";
-import { isFriday, NotAFridayError } from "../lib/scheduling";
+import { isFriday, NotAFridayError, generateTasks } from "../lib/scheduling";
 import { SEED_RELEASES } from "../../config/labels.config";
 import { suggestNextCatalogueNumber, suggestForLabel } from "../lib/catalogue";
 import {
@@ -799,6 +799,43 @@ function LocalReleaseCard({
 
   const days = input.releaseDateISO ? daysUntil(input.releaseDateISO) : null;
 
+  const tasks = useMemo(() => {
+    if (!input.releaseDateISO) return [];
+    try {
+      return generateTasks(input.releaseDateISO, undefined, settingsToTaskRules(settings.taskRules));
+    } catch {
+      return [];
+    }
+  }, [input.releaseDateISO, settings.taskRules]);
+
+  const [tipPos, setTipPos] = useState<{
+    top?: number; bottom?: number; left?: number; right?: number;
+  } | null>(null);
+  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dateTrigger = useRef<HTMLDivElement>(null);
+
+  function handleDateEnter() {
+    tipTimer.current = setTimeout(() => {
+      if (dateTrigger.current) {
+        const rect = dateTrigger.current.getBoundingClientRect();
+        const W = 304;
+        const isBelow = rect.top < window.innerHeight / 2;
+        const isRight = rect.left + W > window.innerWidth - 16;
+        setTipPos({
+          top:    isBelow ? rect.bottom + 8 : undefined,
+          bottom: isBelow ? undefined : window.innerHeight - rect.top + 8,
+          left:   isRight ? undefined : rect.left,
+          right:  isRight ? window.innerWidth - rect.right : undefined,
+        });
+      }
+    }, 1000);
+  }
+
+  function handleDateLeave() {
+    if (tipTimer.current) clearTimeout(tipTimer.current);
+    setTipPos(null);
+  }
+
   const borderClass =
     completeness === "draft"
       ? "border-2 border-amber/40"
@@ -808,15 +845,17 @@ function LocalReleaseCard({
 
   return (
     <div
-      className={`rounded-xl bg-surface overflow-hidden transition-all duration-200 ${borderClass}`}
+      className={`rounded-xl bg-surface transition-all duration-200 ${borderClass}`}
       style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.35)" }}
     >
-      <div
-        className="h-0.5 w-full"
-        style={{
-          background: `linear-gradient(90deg, ${completeness === "draft" ? "#e08010" : accentColor} 0%, transparent 70%)`,
-        }}
-      />
+      <div className="rounded-t-xl overflow-hidden">
+        <div
+          className="h-0.5 w-full"
+          style={{
+            background: `linear-gradient(90deg, ${completeness === "draft" ? "#e08010" : accentColor} 0%, transparent 70%)`,
+          }}
+        />
+      </div>
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <span
@@ -856,17 +895,20 @@ function LocalReleaseCard({
           )}
         </div>
 
-        <div className="min-h-[32px]">
+        <div
+          ref={dateTrigger}
+          className="relative min-h-[32px]"
+          onMouseEnter={handleDateEnter}
+          onMouseLeave={handleDateLeave}
+        >
           {input.releaseDateISO ? (
             <>
-              <p
-                className={`text-sm ${isPast ? "text-snow/45" : "text-snow/80"}`}
-              >
+              <p className={`text-sm cursor-default ${isPast ? "text-snow/45" : "text-snow/80"}`}>
                 {formatDate(input.releaseDateISO)}
               </p>
               {days !== null && (
                 <p
-                  className="text-xs font-mono mt-0.5"
+                  className="text-xs font-mono mt-0.5 cursor-default"
                   style={{
                     color: isPast
                       ? "#3a546e"
@@ -887,6 +929,40 @@ function LocalReleaseCard({
             </>
           ) : (
             <p className="text-sm text-ghost/60 italic">No date set</p>
+          )}
+
+          {tipPos && tasks.length > 0 && (
+            <div
+              style={{ position: "fixed", zIndex: 9999, width: 304, ...tipPos }}
+              className="rounded-lg bg-elevated border border-wire/25 shadow-xl overflow-hidden"
+            >
+              <div className="px-3 py-2 border-b border-wire/15">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-wider">Tasks</p>
+              </div>
+              <ul className="py-1">
+                {tasks.map((task) => {
+                  const d = daysUntil(task.dueDateISO);
+                  const isPastTask = d < 0;
+                  const isToday = d === 0;
+                  return (
+                    <li key={task.id} className="flex items-start gap-2 px-3 py-1">
+                      <span
+                        className="text-[10px] font-mono flex-shrink-0 w-14 pt-px"
+                        style={{ color: isPastTask ? "#2a3d50" : isToday ? "#e08010" : "#4a6a80" }}
+                      >
+                        {formatTaskDate(task.dueDateISO)}
+                      </span>
+                      <span
+                        className="text-xs font-mono leading-tight"
+                        style={{ color: isPastTask ? "#2e4a5e" : isToday ? "#e08010" : "#8aa8be" }}
+                      >
+                        {task.title}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </div>
 
@@ -1417,4 +1493,10 @@ function daysUntil(iso: string): number {
   const [y, m, d] = iso.split("-").map(Number);
   const release = new Date(y!, m! - 1, d!);
   return Math.round((release.getTime() - today.getTime()) / 86400000);
+}
+
+function formatTaskDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y!, m! - 1, d!);
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
