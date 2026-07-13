@@ -29,6 +29,9 @@
 #   bg1.png, bg2.png, ...  one per track (mark hidden, single track name)
 #   mark.png               the centre mark on a transparent background
 #
+# On success, chains straight into relink-video-project.sh with the same label/cat
+# args (Phase 2 — relinks a copied Filmora .wfp project to this release).
+#
 # Usage:
 #   Interactive:     ./scripts/export-video-assets.sh
 #   Non-interactive: ./scripts/export-video-assets.sh MW MW090
@@ -393,7 +396,11 @@ done
 print ""
 if (( FOUND < ${#EXPECTED[@]} )); then
   print -P "  %F{red}Not all files were written — check Photoshop for an alert dialog.%f"
-else
-  print -P "  %F{white}Done. Drop the mp3 samples into assets/videos/ then open the WFP.%f"
+  print ""
+  exit 1
 fi
 print ""
+
+# ── CHAIN: relink the Filmora .wfp project to this release ────────────────────
+SCRIPT_DIR="${0:A:h}"
+"$SCRIPT_DIR/relink-video-project.sh" "$LABEL_KEY" "$CAT_NUMBER"
