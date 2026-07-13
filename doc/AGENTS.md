@@ -154,6 +154,32 @@ for promo videos. Run *after* `new-release.sh` when artwork is finalised:
 - Usage: `./scripts/export-video-assets.sh` (interactive) or
   `./scripts/export-video-assets.sh MW MW091`.
 
+**`scripts/relink-video-project.sh`** — Phase 2: relinks a Filmora `.wfp` project file
+copied in from a previous release so it points at the current one. Run after copying a
+template `.wfp` into `assets/videos/` and after `export-video-assets.sh` has produced
+`bg{n}.png`/`mark.png`. Pure file manipulation — no Photoshop involved:
+- A `.wfp` is a zip archive. Every media reference (`ProjectFolder/project_info.json`,
+  `Medias/medias_info.json`, `Medias/*/media.json`, `Medias/*/timeline.wesproj`) stores
+  an **absolute path** back to wherever it was imported from, so a copied `.wfp` still
+  points at the old release until relinked.
+- Reads `proj_zip_save_path` from `project_info.json` to discover the *old* release
+  folder name and project-file "stem" — no hardcoded old catalogue number, works
+  whichever release the template was copied from.
+- Does a literal substring replace (old release folder → this release's folder, old
+  stem → `{CAT_NUMBER}_<same suffix>`) across every `.json`/`.wesproj` text entry,
+  leaving binary thumbnails untouched. Matches on the path *without* a leading slash so
+  it catches both `/Users/...` and Filmora's `file://Users/...` (note: no third slash)
+  forms in one pass.
+- Deliberately does **not** touch paths that don't contain the old release folder name —
+  e.g. the shared logo at `_MEANWHILE/Assets/Logo/...` or Filmora's own local backup
+  cache path (`~/Movies/Wondershare Filmora Mac/Backup/...`) are left alone.
+- Rebuilds the zip with `zip -X -D` (no directory entries, matching the original's flat
+  16-entries-file structure) under the new stem name, removes the old-named file.
+- Leaves mp3 samples alone entirely — those get dropped in and relinked by hand in
+  Filmora, then exported. That's intentionally manual.
+- Usage: `./scripts/relink-video-project.sh` (interactive) or
+  `./scripts/relink-video-project.sh MW MW091`.
+
 **Label config** lives at the top of each shell script (`configure_label()` function) —
 MW is fully configured, MWH has placeholder stubs.
 
@@ -205,6 +231,11 @@ Verified:
   smart-object refresh via AppleScript UI automation.
 - `export-video-assets.sh` end-to-end on MW091 (Maze 28 EP, 3 tracks): correct per-track
   `bg{n}.png` (single track name, mark hidden, cropped to the Cover artboard) and `mark.png`.
+- `relink-video-project.sh` end-to-end on MW091: relinked a `.wfp` copied from MW090,
+  zip integrity verified, all release-scoped paths correctly repointed, shared logo path
+  and Filmora's local backup cache path correctly left untouched. Not yet confirmed by
+  actually opening the result in Filmora itself (only verified by reading the rewritten
+  archive's contents back).
 
 **Not yet verified:**
 - Real Google Calendar OAuth flow, actual event creation/update/delete, `privateExtendedProperty`
@@ -220,6 +251,7 @@ Verified:
 1. `npm install && npm test && npx tsc --noEmit && npm run build` — confirm baseline is
    green before changing anything.
 2. Check `doc/AGENTS.md` (this file) and the memory files in `.claude/` for project context.
-3. If continuing artwork/video automation work: see `scripts/new-release.sh` and
-   `scripts/export-video-assets.sh` (both verified end-to-end now). Next step is Phase 2:
-   investigating the WFP file format for automated Filmora project templating.
+3. If continuing artwork/video automation work: all three shell scripts
+   (`new-release.sh`, `export-video-assets.sh`, `relink-video-project.sh`) are verified
+   end-to-end now. Remaining manual step in the workflow is dropping mp3 samples into
+   `assets/videos/` and relinking the two audio clips by hand in Filmora before export.
