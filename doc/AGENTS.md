@@ -130,12 +130,27 @@ Adobe Photoshop 2026 and zsh.
 
 **`scripts/export-video-assets.sh`** — Exports per-track PNG backgrounds and mark PNG
 for promo videos. Run *after* `new-release.sh` when artwork is finalised:
-- Opens the release TIF in Photoshop, reads track names from the `TRACK_NAMES` text layer.
-- Exports `bg{n}.png` for each track (mark layer hidden, single track name shown) to
-  `assets/videos/`.
-- Opens the mark PSB and exports `mark.png` with transparency to `assets/videos/`.
-- Handles Photoshop artboards: if the TIF has a square top-level LayerSet, crops the
-  export to those bounds; otherwise uses the full canvas.
+- The TIF is **not** one flat design — it's several side-by-side Photoshop Artboards
+  (Story, 4x5, Cover, FB Banner, SC Banner, Spotify Banner) on one large canvas, each
+  with its own independent Mark / TRACK 1 TRACK 2 / Background layers. The script
+  targets one named artboard only (`ARTBOARD_NAME`, "Meanwhile Release Cover" for MW).
+- `Document.crop()` does not work on documents containing real Photoshop Artboards —
+  confirmed by direct testing, it silently no-ops. The script instead hides every
+  sibling top-level artboard and uses `Document.trim(TrimType.TRANSPARENT, ...)`,
+  which works on pixel bounds rather than artboard metadata.
+- The track-name text is a Smart Object (`TRACK 1 TRACK 2` layer), not a plain text
+  layer, so it can't be set directly. Its link target is **this release's own**
+  `assets/images/{PSB_TRACKS}` (e.g. `MW - track names.psb`) — confirmed via the
+  Action Manager `smartObject` descriptor's `link` path. (`new-release.sh`'s own
+  comment claiming the link points at the shared template folder is wrong for this
+  file — don't trust it without re-checking.) Per track, the script writes that one
+  track name into the release's archived PSB, then opens the TIF **fresh** — a
+  document that's already open does not pick up the change even after "Update All
+  Modified Content"; only a fresh open resolves current linked content — isolates
+  the target artboard, hides the Mark smart object, trims, and exports. The archived
+  PSB is restored to the full track list afterwards.
+- Opens the mark PSB (same release-local-copy convention) and exports `mark.png`
+  with transparency to `assets/videos/`.
 - Usage: `./scripts/export-video-assets.sh` (interactive) or
   `./scripts/export-video-assets.sh MW MW091`.
 
@@ -188,7 +203,8 @@ Verified:
   footer stacking context — uses `position: fixed` with `getBoundingClientRect()`).
 - `new-release.sh` end-to-end on MW releases: PSB text updates, text justification preserved,
   smart-object refresh via AppleScript UI automation.
-- `export-video-assets.sh` written and ready to test on MW090 (Fran Garay EP 2).
+- `export-video-assets.sh` end-to-end on MW091 (Maze 28 EP, 3 tracks): correct per-track
+  `bg{n}.png` (single track name, mark hidden, cropped to the Cover artboard) and `mark.png`.
 
 **Not yet verified:**
 - Real Google Calendar OAuth flow, actual event creation/update/delete, `privateExtendedProperty`
@@ -196,7 +212,6 @@ Verified:
 - Real Gmail draft creation and whether `gmail.compose` scope is sufficient.
 - Real Dropbox folder listing/shared-link creation.
 - The `results` branch orphan-branch bootstrap path in GitHub Actions (works in theory).
-- `export-video-assets.sh` — written but not yet tested end-to-end.
 - No React component tests exist — UI is type-checked and built, but not interaction-tested.
 - No ESLint config; `next build`'s built-in lint ran without complaint.
 
@@ -206,6 +221,5 @@ Verified:
    green before changing anything.
 2. Check `doc/AGENTS.md` (this file) and the memory files in `.claude/` for project context.
 3. If continuing artwork/video automation work: see `scripts/new-release.sh` and
-   `scripts/export-video-assets.sh`. The next step is testing `export-video-assets.sh` on
-   MW090 (Fran Garay EP 2) and then investigating the WFP file format for Phase 2
-   (automated Filmora project templating).
+   `scripts/export-video-assets.sh` (both verified end-to-end now). Next step is Phase 2:
+   investigating the WFP file format for automated Filmora project templating.
