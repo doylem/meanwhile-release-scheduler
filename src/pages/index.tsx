@@ -661,6 +661,10 @@ function LandingPage({
                       coverArtUrl={
                         releaseStates[item.entry.catalogueNumber]?.coverArtUrl
                       }
+                      completedTasks={
+                        releaseStates[item.entry.catalogueNumber]
+                          ?.completedTasks
+                      }
                       onActions={() => onActionsManifest(item.entry)}
                     />
                   );
@@ -713,6 +717,9 @@ function LandingPage({
                   entry={entry}
                   coverArtUrl={
                     releaseStates[entry.catalogueNumber]?.coverArtUrl
+                  }
+                  completedTasks={
+                    releaseStates[entry.catalogueNumber]?.completedTasks
                   }
                   onActions={() => onActionsManifest(entry)}
                   isPast
@@ -770,6 +777,23 @@ function StatusTag({
   return (
     <span className={`${base} bg-amber/8 text-amber border-amber/25`}>
       Draft
+    </span>
+  );
+}
+
+function TaskProgressTag({ done, total }: { done: number; total: number }) {
+  if (total === 0) return null;
+  const complete = done === total;
+  return (
+    <span
+      className={`text-[11px] font-mono rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border ${
+        complete
+          ? "bg-lime/8 text-lime border-lime/25"
+          : "bg-wire/8 text-muted border-wire/20"
+      }`}
+    >
+      {complete && "✓ "}
+      {done}/{total} tasks
     </span>
   );
 }
@@ -899,6 +923,14 @@ function LocalReleaseCard({
                 <span className="text-ghost/50 italic">No title yet</span>
               )}
             </p>
+            {tasks.length > 0 && (
+              <div className="mt-1.5">
+                <TaskProgressTag
+                  done={tasks.filter((t) => completedTasks?.includes(t.id)).length}
+                  total={tasks.length}
+                />
+              </div>
+            )}
           </div>
           {coverArtUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -1037,11 +1069,13 @@ function LocalReleaseCard({
 function ManifestOnlyCard({
   entry,
   coverArtUrl,
+  completedTasks,
   onActions,
   isPast = false,
 }: {
   entry: ManifestEntry;
   coverArtUrl?: string;
+  completedTasks?: string[];
   onActions: () => void;
   isPast?: boolean;
 }) {
@@ -1050,6 +1084,13 @@ function ManifestOnlyCard({
   const isRecordings = entry.label === "meanwhile-recordings";
   const accentColor = isRecordings ? "#00d4ff" : "#8b5cf6";
   const days = daysUntil(entry.releaseDateISO);
+  const tasks = useMemo(() => {
+    try {
+      return generateTasks(entry.releaseDateISO, undefined, settingsToTaskRules(settings.taskRules));
+    } catch {
+      return [];
+    }
+  }, [entry.releaseDateISO, settings.taskRules]);
 
   return (
     <div
@@ -1087,6 +1128,14 @@ function ManifestOnlyCard({
               </p>
             ) : (
               <p className="text-sm text-ghost/50 mt-0.5 italic">—</p>
+            )}
+            {tasks.length > 0 && (
+              <div className="mt-1.5">
+                <TaskProgressTag
+                  done={tasks.filter((t) => completedTasks?.includes(t.id)).length}
+                  total={tasks.length}
+                />
+              </div>
             )}
           </div>
           {coverArtUrl && (
