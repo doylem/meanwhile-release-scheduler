@@ -8,6 +8,9 @@
  * are read from environment variables / GitHub Secrets — see README.md.
  */
 
+/** Browser tab / window title for the app. */
+export const APP_NAME = 'Meanwhile Release Scheduler';
+
 export type LabelKey = 'meanwhile-recordings' | 'meanwhile-horizons';
 
 export interface LabelConfig {

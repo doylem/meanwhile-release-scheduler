@@ -23,7 +23,7 @@ import { useReleaseStates } from "../lib/useReleaseStates";
 import type { ReleaseState } from "../lib/types";
 import { generateLocalId, type LocalRelease } from "../lib/localReleases";
 import { useSharedReleases } from "../lib/useSharedReleases";
-import type { Release, ReleaseInput } from "../lib/types";
+import type { Release, ReleaseInput, ScheduledTask } from "../lib/types";
 
 export default function Home() {
   return (
@@ -282,6 +282,8 @@ function App() {
         onDeleteLocal={handleDeleteLocal}
         dryRun={dryRun}
         setDryRun={setDryRun}
+        onToggleTask={toggleTask}
+        taskTrackingDisabled={!connection}
       />
 
       {modalOpen && (
@@ -403,6 +405,8 @@ function LandingPage({
   onDeleteLocal,
   dryRun,
   setDryRun,
+  onToggleTask,
+  taskTrackingDisabled,
 }: {
   localReleases: LocalRelease[];
   releasesLoading: boolean;
@@ -418,6 +422,8 @@ function LandingPage({
   onDeleteLocal: (id: string) => void;
   dryRun: boolean;
   setDryRun: (v: boolean) => void;
+  onToggleTask: (catalogueNumber: string, taskId: string, done: boolean) => void;
+  taskTrackingDisabled: boolean;
 }) {
   const { basePath } = useRouter();
   const [githubModalOpen, setGithubModalOpen] = useState(false);
@@ -647,6 +653,10 @@ function LandingPage({
                         releaseStates[item.local.input.catalogueNumber]
                           ?.completedTasks
                       }
+                      onToggleTask={(taskId, done) =>
+                        onToggleTask(item.local.input.catalogueNumber, taskId, done)
+                      }
+                      taskTrackingDisabled={taskTrackingDisabled}
                       onEdit={() => onEditLocal(item.local)}
                       onActions={() => onActionsLocal(item.local)}
                       onDelete={() => onDeleteLocal(item.local.id)}
@@ -665,6 +675,10 @@ function LandingPage({
                         releaseStates[item.entry.catalogueNumber]
                           ?.completedTasks
                       }
+                      onToggleTask={(taskId, done) =>
+                        onToggleTask(item.entry.catalogueNumber, taskId, done)
+                      }
+                      taskTrackingDisabled={taskTrackingDisabled}
                       onActions={() => onActionsManifest(item.entry)}
                     />
                   );
@@ -705,6 +719,10 @@ function LandingPage({
                   completedTasks={
                     releaseStates[local.input.catalogueNumber]?.completedTasks
                   }
+                  onToggleTask={(taskId, done) =>
+                    onToggleTask(local.input.catalogueNumber, taskId, done)
+                  }
+                  taskTrackingDisabled={taskTrackingDisabled}
                   onEdit={() => onEditLocal(local)}
                   onActions={() => onActionsLocal(local)}
                   onDelete={() => onDeleteLocal(local.id)}
@@ -721,6 +739,10 @@ function LandingPage({
                   completedTasks={
                     releaseStates[entry.catalogueNumber]?.completedTasks
                   }
+                  onToggleTask={(taskId, done) =>
+                    onToggleTask(entry.catalogueNumber, taskId, done)
+                  }
+                  taskTrackingDisabled={taskTrackingDisabled}
                   onActions={() => onActionsManifest(entry)}
                   isPast
                 />
@@ -754,12 +776,21 @@ function CatalogueTag({ code }: { code: string }) {
 function StatusTag({
   completeness,
   scheduled,
+  shipped = false,
 }: {
   completeness: "draft" | "ready";
   scheduled: boolean;
+  shipped?: boolean;
 }) {
   const base =
     "text-[11px] font-mono uppercase tracking-wider rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border";
+  if (shipped) {
+    return (
+      <span className={`${base} bg-lime/10 text-lime border-lime/25`}>
+        Shipped
+      </span>
+    );
+  }
   if (scheduled) {
     return (
       <span className={`${base} bg-cyan/10 text-cyan border-cyan/25`}>
@@ -784,17 +815,172 @@ function StatusTag({
 function TaskProgressTag({ done, total }: { done: number; total: number }) {
   if (total === 0) return null;
   const complete = done === total;
+  const pct = done / total;
+  // Even quarter-bands across the incomplete range; green is reserved for 100%.
+  const colorClasses = complete
+    ? "bg-lime/8 text-lime border-lime/25"
+    : pct >= 0.75
+      ? "bg-blue/10 text-blue border-blue/30"
+      : pct >= 0.5
+        ? "bg-gold/8 text-gold border-gold/25"
+        : pct >= 0.25
+          ? "bg-amber/8 text-amber border-amber/25"
+          : "bg-signal/8 text-signal border-signal/25";
   return (
     <span
-      className={`text-[11px] font-mono rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border ${
-        complete
-          ? "bg-lime/8 text-lime border-lime/25"
-          : "bg-wire/8 text-muted border-wire/20"
-      }`}
+      className={`text-[11px] font-mono rounded-full px-2.5 py-0.5 flex-shrink-0 whitespace-nowrap border ${colorClasses}`}
     >
       {complete && "✓ "}
       {done}/{total} tasks
     </span>
+  );
+}
+
+// ─── Task hover tooltip (shared by both card types) ──────────────────────────
+
+type TipPos = { top?: number; bottom?: number; left?: number; right?: number };
+
+/**
+ * Hover-intent state machine: opens after a delay when either trigger is
+ * hovered, and — crucially — stays open (via a short close-delay) when the
+ * pointer moves from a trigger into the tooltip panel itself, so the panel's
+ * checkboxes are actually reachable. Only closes once the pointer has left
+ * every tracked element for the close-delay window.
+ */
+function useTaskHoverTooltip() {
+  const [tipPos, setTipPos] = useState<TipPos | null>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearOpenTimer() {
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+  }
+  function clearCloseTimer() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function enter(triggerRef: React.RefObject<HTMLElement>) {
+    clearCloseTimer();
+    if (tipPos) return; // already open (or opening) — just cancel the pending close
+    clearOpenTimer();
+    openTimer.current = setTimeout(() => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const W = 304;
+      const isBelow = rect.top < window.innerHeight / 2;
+      const isRight = rect.left + W > window.innerWidth - 16;
+      setTipPos({
+        top: isBelow ? rect.bottom + 8 : undefined,
+        bottom: isBelow ? undefined : window.innerHeight - rect.top + 8,
+        left: isRight ? undefined : rect.left,
+        right: isRight ? window.innerWidth - rect.right : undefined,
+      });
+    }, 1000);
+  }
+
+  function leave() {
+    clearOpenTimer();
+    closeTimer.current = setTimeout(() => setTipPos(null), 250);
+  }
+
+  useEffect(() => {
+    return () => {
+      clearOpenTimer();
+      clearCloseTimer();
+    };
+  }, []);
+
+  return { tipPos, enter, leave, cancelClose: clearCloseTimer };
+}
+
+function TaskHoverPanel({
+  tipPos,
+  tasks,
+  completedTasks,
+  onToggle,
+  disabled,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  tipPos: TipPos;
+  tasks: ScheduledTask[];
+  completedTasks?: string[];
+  onToggle?: (taskId: string, done: boolean) => void;
+  disabled: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}) {
+  const done = new Set(completedTasks ?? []);
+  return (
+    <div
+      style={{ position: "fixed", zIndex: 9999, width: 304, ...tipPos }}
+      className="rounded-lg bg-elevated border border-wire/25 shadow-xl overflow-hidden"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <div className="px-3 py-2 border-b border-wire/15 flex items-center justify-between">
+        <p className="text-[10px] font-mono text-muted uppercase tracking-wider">Tasks</p>
+        <p className="text-[10px] font-mono text-ghost">
+          {done.size}/{tasks.length} done
+        </p>
+      </div>
+      <ul className="py-1 max-h-80 overflow-y-auto">
+        {tasks.map((task) => {
+          const d = daysUntil(task.dueDateISO);
+          const isPastTask = d < 0;
+          const isToday = d === 0;
+          const isDone = done.has(task.id);
+          return (
+            <li key={task.id}>
+              <label
+                className={`flex items-start gap-2 px-3 py-1.5 transition-colors ${
+                  disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:bg-wire/8"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isDone}
+                  disabled={disabled}
+                  onChange={(e) => onToggle?.(task.id, e.target.checked)}
+                  className="mt-0.5 w-3 h-3 accent-lime flex-shrink-0"
+                />
+                <span className="flex-1 min-w-0">
+                  <span
+                    className={`block text-xs font-mono leading-tight ${isDone ? "line-through" : ""}`}
+                    style={{
+                      color: isDone ? "#7fb88a" : isPastTask ? "#2e4a5e" : isToday ? "#e08010" : "#8aa8be",
+                    }}
+                  >
+                    {isDone && "✓ "}
+                    {task.title}
+                  </span>
+                  <span
+                    className="text-[10px] font-mono"
+                    style={{
+                      color: isDone ? "#5a8a6a" : isPastTask ? "#2a3d50" : isToday ? "#e08010" : "#4a6a80",
+                    }}
+                  >
+                    {formatTaskDate(task.dueDateISO)}
+                  </span>
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      {disabled && (
+        <p className="text-[10px] font-mono text-gold/80 px-3 py-2 border-t border-wire/15">
+          Connect GitHub to check off tasks.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -805,6 +991,8 @@ function LocalReleaseCard({
   manifestEntries,
   coverArtUrl,
   completedTasks,
+  onToggleTask,
+  taskTrackingDisabled,
   onEdit,
   onActions,
   onDelete,
@@ -814,6 +1002,8 @@ function LocalReleaseCard({
   manifestEntries: ManifestEntry[] | null;
   coverArtUrl?: string;
   completedTasks?: string[];
+  onToggleTask?: (taskId: string, done: boolean) => void;
+  taskTrackingDisabled?: boolean;
   onEdit: () => void;
   onActions: () => void;
   onDelete: () => void;
@@ -847,33 +1037,9 @@ function LocalReleaseCard({
     }
   }, [input.releaseDateISO, settings.taskRules]);
 
-  const [tipPos, setTipPos] = useState<{
-    top?: number; bottom?: number; left?: number; right?: number;
-  } | null>(null);
-  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateTrigger = useRef<HTMLDivElement>(null);
-
-  function handleDateEnter() {
-    tipTimer.current = setTimeout(() => {
-      if (dateTrigger.current) {
-        const rect = dateTrigger.current.getBoundingClientRect();
-        const W = 304;
-        const isBelow = rect.top < window.innerHeight / 2;
-        const isRight = rect.left + W > window.innerWidth - 16;
-        setTipPos({
-          top:    isBelow ? rect.bottom + 8 : undefined,
-          bottom: isBelow ? undefined : window.innerHeight - rect.top + 8,
-          left:   isRight ? undefined : rect.left,
-          right:  isRight ? window.innerWidth - rect.right : undefined,
-        });
-      }
-    }, 1000);
-  }
-
-  function handleDateLeave() {
-    if (tipTimer.current) clearTimeout(tipTimer.current);
-    setTipPos(null);
-  }
+  const taskTagTrigger = useRef<HTMLDivElement>(null);
+  const { tipPos, enter: enterTip, leave: leaveTip, cancelClose: cancelTipClose } = useTaskHoverTooltip();
 
   const borderClass =
     completeness === "draft"
@@ -905,7 +1071,7 @@ function LocalReleaseCard({
           </span>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <CatalogueTag code={input.catalogueNumber} />
-            <StatusTag completeness={completeness} scheduled={scheduled} />
+            <StatusTag completeness={completeness} scheduled={scheduled} shipped={scheduled && isPast} />
           </div>
         </div>
 
@@ -924,7 +1090,12 @@ function LocalReleaseCard({
               )}
             </p>
             {tasks.length > 0 && (
-              <div className="mt-1.5">
+              <div
+                ref={taskTagTrigger}
+                className="mt-1.5 inline-block cursor-default"
+                onMouseEnter={() => enterTip(taskTagTrigger)}
+                onMouseLeave={leaveTip}
+              >
                 <TaskProgressTag
                   done={tasks.filter((t) => completedTasks?.includes(t.id)).length}
                   total={tasks.length}
@@ -945,8 +1116,8 @@ function LocalReleaseCard({
         <div
           ref={dateTrigger}
           className="relative min-h-[32px]"
-          onMouseEnter={handleDateEnter}
-          onMouseLeave={handleDateLeave}
+          onMouseEnter={() => enterTip(dateTrigger)}
+          onMouseLeave={leaveTip}
         >
           {input.releaseDateISO ? (
             <>
@@ -977,43 +1148,19 @@ function LocalReleaseCard({
           ) : (
             <p className="text-sm text-ghost/60 italic">No date set</p>
           )}
-
-          {tipPos && tasks.length > 0 && (
-            <div
-              style={{ position: "fixed", zIndex: 9999, width: 304, ...tipPos }}
-              className="rounded-lg bg-elevated border border-wire/25 shadow-xl overflow-hidden"
-            >
-              <div className="px-3 py-2 border-b border-wire/15">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-wider">Tasks</p>
-              </div>
-              <ul className="py-1">
-                {tasks.map((task) => {
-                  const d = daysUntil(task.dueDateISO);
-                  const isPastTask = d < 0;
-                  const isToday = d === 0;
-                  const isDone = completedTasks?.includes(task.id) ?? false;
-                  return (
-                    <li key={task.id} className="flex items-start gap-2 px-3 py-1">
-                      <span
-                        className="text-[10px] font-mono flex-shrink-0 w-14 pt-px"
-                        style={{ color: isDone ? "#5a8a6a" : isPastTask ? "#2a3d50" : isToday ? "#e08010" : "#4a6a80" }}
-                      >
-                        {formatTaskDate(task.dueDateISO)}
-                      </span>
-                      <span
-                        className={`text-xs font-mono leading-tight ${isDone ? "line-through" : ""}`}
-                        style={{ color: isDone ? "#7fb88a" : isPastTask ? "#2e4a5e" : isToday ? "#e08010" : "#8aa8be" }}
-                      >
-                        {isDone && "✓ "}
-                        {task.title}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
         </div>
+
+        {tipPos && tasks.length > 0 && (
+          <TaskHoverPanel
+            tipPos={tipPos}
+            tasks={tasks}
+            completedTasks={completedTasks}
+            onToggle={onToggleTask}
+            disabled={Boolean(taskTrackingDisabled)}
+            onMouseEnter={cancelTipClose}
+            onMouseLeave={leaveTip}
+          />
+        )}
 
         <div className="flex gap-2 pt-2 border-t border-wire/10">
           {completeness === "draft" ? (
@@ -1070,12 +1217,16 @@ function ManifestOnlyCard({
   entry,
   coverArtUrl,
   completedTasks,
+  onToggleTask,
+  taskTrackingDisabled,
   onActions,
   isPast = false,
 }: {
   entry: ManifestEntry;
   coverArtUrl?: string;
   completedTasks?: string[];
+  onToggleTask?: (taskId: string, done: boolean) => void;
+  taskTrackingDisabled?: boolean;
   onActions: () => void;
   isPast?: boolean;
 }) {
@@ -1091,6 +1242,9 @@ function ManifestOnlyCard({
       return [];
     }
   }, [entry.releaseDateISO, settings.taskRules]);
+  const dateTrigger = useRef<HTMLDivElement>(null);
+  const taskTagTrigger = useRef<HTMLDivElement>(null);
+  const { tipPos, enter: enterTip, leave: leaveTip, cancelClose: cancelTipClose } = useTaskHoverTooltip();
 
   return (
     <div
@@ -1113,7 +1267,7 @@ function ManifestOnlyCard({
           </span>
           <div className="flex items-center gap-1.5">
             <CatalogueTag code={entry.catalogueNumber} />
-            <StatusTag completeness="ready" scheduled={true} />
+            <StatusTag completeness="ready" scheduled={true} shipped={isPast} />
           </div>
         </div>
 
@@ -1130,7 +1284,12 @@ function ManifestOnlyCard({
               <p className="text-sm text-ghost/50 mt-0.5 italic">—</p>
             )}
             {tasks.length > 0 && (
-              <div className="mt-1.5">
+              <div
+                ref={taskTagTrigger}
+                className="mt-1.5 inline-block cursor-default"
+                onMouseEnter={() => enterTip(taskTagTrigger)}
+                onMouseLeave={leaveTip}
+              >
                 <TaskProgressTag
                   done={tasks.filter((t) => completedTasks?.includes(t.id)).length}
                   total={tasks.length}
@@ -1148,7 +1307,12 @@ function ManifestOnlyCard({
           )}
         </div>
 
-        <div className="min-h-[32px]">
+        <div
+          ref={dateTrigger}
+          className="min-h-[32px]"
+          onMouseEnter={() => enterTip(dateTrigger)}
+          onMouseLeave={leaveTip}
+        >
           <p className={`text-sm ${isPast ? "text-snow/45" : "text-snow/80"}`}>
             {formatDate(entry.releaseDateISO)}
           </p>
@@ -1171,6 +1335,18 @@ function ManifestOnlyCard({
                 : `${Math.abs(days)} days ago`}
           </p>
         </div>
+
+        {tipPos && tasks.length > 0 && (
+          <TaskHoverPanel
+            tipPos={tipPos}
+            tasks={tasks}
+            completedTasks={completedTasks}
+            onToggle={onToggleTask}
+            disabled={Boolean(taskTrackingDisabled)}
+            onMouseEnter={cancelTipClose}
+            onMouseLeave={leaveTip}
+          />
+        )}
 
         <div className="pt-2 border-t border-wire/10">
           <button
