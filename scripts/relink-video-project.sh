@@ -1,28 +1,41 @@
 #!/bin/zsh
-# relink-video-project.sh — Relink a copied Filmora .wfp project to the current release
+# relink-video-project.sh — Relink copied Filmora .wfp project(s) to the current release
 #
-# Phase 2 of the video promo workflow (see doc/AGENTS.md). Run after copying a .wfp
-# project file from a previous release into this release's assets/videos/ folder,
-# and after export-video-assets.sh has produced bg{n}.png / mark.png here.
+# Phase 2 of the video promo workflow (see doc/AGENTS.md). Run after copying one or
+# more .wfp project files from a previous release (or the shared "MWxxx - Template
+# (copy me)" folder) into this release's assets/videos/ folder, and after
+# export-video-assets.sh has produced bg{n}.png / mark.png here.
+#
+# A release can have more than one video project — e.g. MW090_promo_video_square.wfp
+# (the main square promo) and MW090_spotify_canvas.wfp (a simpler portrait video for
+# Spotify Canvas, using a static spotify-bg.png background instead of the per-track
+# bg{n}.png, but the same mark.png). Every .wfp found in assets/videos/ is relinked
+# independently — there's no special-casing per project type, since the relink logic
+# below is driven entirely by what's already inside the .wfp's own project_info.json.
 #
 # A .wfp is a zip archive (see ProjectFolder/project_info.json, medias_info.json,
 # Medias/*/media.json, Medias/*/timeline.wesproj inside it). Every media reference
 # stores an ABSOLUTE path back to wherever it was imported from — when a .wfp is
 # copied to a new release folder, those paths still point at the OLD release, so
-# Filmora shows the media as offline/missing. This script:
-#   1. Finds the one .wfp file in assets/videos/
-#   2. Reads project_info.json's proj_zip_save_path to find the OLD release folder
+# Filmora shows the media as offline/missing. For each .wfp found, this script:
+#   1. Reads project_info.json's proj_zip_save_path to find the OLD release folder
 #      name and OLD project file "stem" it was saved as
-#   3. Replaces that folder name with this release's own folder name, and that stem
+#   2. Replaces that folder name with this release's own folder name, and that stem
 #      with this release's own CAT_NUMBER-based stem, across every text entry in the
 #      archive (skipping binary thumbnails) — a plain substring replace, not a
 #      structural rewrite, so nothing else in the project (timeline, effects, etc)
 #      is touched
-#   4. Re-zips it under the new name and removes the old-named file
+#   3. Re-zips it under the new name and removes the old-named file
 #
 # It does not touch the shared logo path (_MEANWHILE/Assets/Logo/...) or Filmora's
 # own local backup cache path (~/Movies/Wondershare Filmora Mac/Backup/...) since
-# neither contains the old release's folder name.
+# neither contains the old release's folder name. A .wfp that already points at this
+# release (e.g. re-running the chained export) is detected and skipped cleanly.
+#
+# Also fixes one known stale path while it's in there: the spotify-canvas template's
+# spotify-bg.png reference points at a "spotify/" subfolder that hasn't existed since
+# the template was created — the file has always lived directly in assets/videos/.
+# A no-op for any .wfp that doesn't reference that path.
 #
 # mp3 samples are intentionally left alone — drop those into assets/videos/ and
 # relink the two audio clips by hand in Filmora, then export.
@@ -109,7 +122,7 @@ fi
 VIDEOS_DIR="${RELEASE_DIR}/assets/videos"
 NEW_FOLDER_BASENAME="${RELEASE_DIR:t}"
 
-# ── FIND THE .wfp FILE ─────────────────────────────────────────────────────────
+# ── FIND .wfp FILES ────────────────────────────────────────────────────────────
 WFP_FILES=("${VIDEOS_DIR}"/*.wfp(N))
 
 if [[ ${#WFP_FILES[@]} -eq 0 ]]; then
@@ -117,31 +130,39 @@ if [[ ${#WFP_FILES[@]} -eq 0 ]]; then
   print -P "  %F{white}${VIDEOS_DIR}%f"
   print -P "%F{white}Copy a template .wfp project in first.%f"
   exit 1
-elif [[ ${#WFP_FILES[@]} -gt 1 ]]; then
-  print -P "%F{red}Multiple .wfp files found — remove duplicates and try again:%f"
-  for f in "${WFP_FILES[@]}"; do print -P "  %F{white}${f:t}%f"; done
-  exit 1
 fi
 
-WFP_PATH="${WFP_FILES[1]}"
-print -P "%F{white}Release:%f  ${RELEASE_DIR:t}"
-print -P "%F{white}Project:%f  ${WFP_PATH:t}"
+print -P "%F{white}Release:%f   ${RELEASE_DIR:t}"
+print -P "%F{white}Projects:%f  ${#WFP_FILES[@]} found"
+for f in "${WFP_FILES[@]}"; do print -P "             %F{white}${f:t}%f"; done
 print ""
 
-# ── UNZIP TO SCRATCH DIR ───────────────────────────────────────────────────────
-WORK_DIR="/tmp/meanwhile-video-relink-${CAT_NUMBER}"
-rm -rf "$WORK_DIR"
-mkdir -p "$WORK_DIR"
-unzip -q "$WFP_PATH" -d "$WORK_DIR"
+RELINKED_COUNT=0
+SKIPPED_COUNT=0
+FAILED_COUNT=0
 
-PROJECT_INFO="$WORK_DIR/ProjectFolder/project_info.json"
-if [[ ! -f "$PROJECT_INFO" ]]; then
-  print -P "%F{red}ProjectFolder/project_info.json not found inside the .wfp — unexpected format.%f"
-  exit 1
-fi
+# ── RELINK EACH .wfp INDEPENDENTLY ────────────────────────────────────────────
+# Every project file found gets the same treatment — there's nothing promo- or
+# canvas-specific here, it's all driven by what's already inside each .wfp's own
+# project_info.json.
+for WFP_PATH in "${WFP_FILES[@]}"; do
+  print -P "%F{cyan}-- ${WFP_PATH:t} --%f"
 
-# ── COMPUTE OLD/NEW FOLDER + STEM, REWRITE TEXT FILES ─────────────────────────
-python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" << 'PYEOF'
+  WORK_DIR="/tmp/meanwhile-video-relink-${CAT_NUMBER}-${WFP_PATH:t:r}"
+  rm -rf "$WORK_DIR"
+  mkdir -p "$WORK_DIR"
+  unzip -q "$WFP_PATH" -d "$WORK_DIR"
+
+  PROJECT_INFO="$WORK_DIR/ProjectFolder/project_info.json"
+  if [[ ! -f "$PROJECT_INFO" ]]; then
+    print -P "  %F{red}ProjectFolder/project_info.json not found inside the .wfp — unexpected format, skipping.%f"
+    print ""
+    (( FAILED_COUNT++ ))
+    continue
+  fi
+
+  # ── COMPUTE OLD/NEW FOLDER + STEM, REWRITE TEXT FILES ─────────────────────
+  python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" << 'PYEOF'
 import json, os, sys, glob
 
 work_dir, project_info_path, new_folder_basename, cat_number = sys.argv[1:5]
@@ -151,7 +172,7 @@ with open(project_info_path) as f:
 
 old_full_path = info.get("proj_zip_save_path", "")
 if not old_full_path:
-    print("NOFIX: proj_zip_save_path missing from project_info.json")
+    print("  NOFIX: proj_zip_save_path missing from project_info.json")
     sys.exit(0)
 
 # Normalize: work without a leading slash so the same substring matches both
@@ -160,7 +181,7 @@ old_path = old_full_path.lstrip("/")
 
 marker = "/assets/videos/"
 if marker not in old_path:
-    print("NOFIX: proj_zip_save_path did not contain /assets/videos/: " + old_full_path)
+    print("  NOFIX: proj_zip_save_path did not contain /assets/videos/: " + old_full_path)
     sys.exit(0)
 
 old_release_folder, rest = old_path.split(marker, 1)
@@ -177,13 +198,20 @@ else:
     new_stem = cat_number + "_promo_video"
 
 if old_folder_basename == new_folder_basename:
-    print("NOFIX: already points at this release (%s)" % old_folder_basename)
+    print("  NOFIX: already points at this release (%s)" % old_folder_basename)
     sys.exit(0)
 
-print("OLD_FOLDER=" + old_release_folder)
-print("NEW_FOLDER=" + new_release_folder)
-print("OLD_STEM=" + old_stem)
-print("NEW_STEM=" + new_stem)
+print("  OLD_FOLDER=" + old_release_folder)
+print("  NEW_FOLDER=" + new_release_folder)
+print("  OLD_STEM=" + old_stem)
+print("  NEW_STEM=" + new_stem)
+
+# Known stale path in the spotify-canvas template: spotify-bg.png was originally
+# imported from a "spotify/" subfolder that no longer exists — the file has always
+# lived directly in assets/videos/ in both MW090's project and the shared template.
+# A no-op for any .wfp that doesn't reference this path (e.g. the square promo).
+stale_marker = "/assets/videos/spotify/spotify-bg.png"
+fixed_marker = "/assets/videos/spotify-bg.png"
 
 # Only rewrite text-based entries; leave binary thumbnails untouched.
 text_exts = (".json", ".wesproj")
@@ -195,48 +223,71 @@ for path in glob.glob(os.path.join(work_dir, "**", "*"), recursive=True):
         continue
     with open(path, "r", encoding="utf-8", errors="strict") as f:
         content = f.read()
-    new_content = content.replace(old_release_folder, new_release_folder).replace(old_stem, new_stem)
+    new_content = (
+        content.replace(old_release_folder, new_release_folder)
+        .replace(old_stem, new_stem)
+        .replace(stale_marker, fixed_marker)
+    )
     if new_content != content:
         with open(path, "w", encoding="utf-8") as f:
             f.write(new_content)
         changed.append(os.path.relpath(path, work_dir))
 
-print("CHANGED_COUNT=%d" % len(changed))
+print("  CHANGED_COUNT=%d" % len(changed))
 for c in changed:
-    print("CHANGED: " + c)
+    print("  CHANGED: " + c)
 
 with open(os.path.join(work_dir, ".relink_result"), "w") as f:
     json.dump({"new_stem": new_stem, "old_stem": old_stem}, f)
 PYEOF
 
-if [[ ! -f "$WORK_DIR/.relink_result" ]]; then
-  print -P "%F{yellow}Nothing to relink — project already points at this release, or its format was unrecognised.%f"
+  if [[ ! -f "$WORK_DIR/.relink_result" ]]; then
+    print -P "  %F{yellow}Nothing to relink — already points at this release, or its format was unrecognised.%f"
+    print ""
+    (( SKIPPED_COUNT++ ))
+    continue
+  fi
+
+  NEW_STEM=$(python3 -c "import json; print(json.load(open('$WORK_DIR/.relink_result'))['new_stem'])")
+  rm -f "$WORK_DIR/.relink_result"
+
+  # ── REBUILD THE .wfp ─────────────────────────────────────────────────────
+  NEW_WFP_PATH="${VIDEOS_DIR}/${NEW_STEM}.wfp"
+  rm -f "$NEW_WFP_PATH"
+
+  ( cd "$WORK_DIR" && zip -q -X -D -r "$NEW_WFP_PATH" ProjectFolder )
+
+  if [[ ! -f "$NEW_WFP_PATH" ]]; then
+    print -P "  %F{red}Failed to rebuild the .wfp — check ${WORK_DIR} for scratch files.%f"
+    print ""
+    (( FAILED_COUNT++ ))
+    continue
+  fi
+
+  if [[ "$NEW_WFP_PATH" != "$WFP_PATH" ]]; then
+    rm -f "$WFP_PATH"
+  fi
+
+  print -P "  %F{green}✓%f  videos/${NEW_WFP_PATH:t}"
   print ""
-  exit 0
+  (( RELINKED_COUNT++ ))
+done
+
+# ── REPORT ────────────────────────────────────────────────────────────────────
+SUMMARY="Relinked ${RELINKED_COUNT}, skipped ${SKIPPED_COUNT} (already up to date)"
+if (( FAILED_COUNT > 0 )); then
+  SUMMARY="${SUMMARY}, ${FAILED_COUNT} failed"
 fi
+SUMMARY="${SUMMARY} of ${#WFP_FILES[@]} project(s)."
+print -P "%F{white}${SUMMARY}%f"
+print ""
 
-NEW_STEM=$(python3 -c "import json; print(json.load(open('$WORK_DIR/.relink_result'))['new_stem'])")
-rm -f "$WORK_DIR/.relink_result"
-
-# ── REBUILD THE .wfp ───────────────────────────────────────────────────────────
-NEW_WFP_PATH="${VIDEOS_DIR}/${NEW_STEM}.wfp"
-rm -f "$NEW_WFP_PATH"
-
-( cd "$WORK_DIR" && zip -q -X -D -r "$NEW_WFP_PATH" ProjectFolder )
-
-if [[ ! -f "$NEW_WFP_PATH" ]]; then
-  print -P "%F{red}Failed to rebuild the .wfp — check /tmp for scratch files.%f"
+if (( FAILED_COUNT > 0 )); then
   exit 1
 fi
 
-if [[ "$NEW_WFP_PATH" != "$WFP_PATH" ]]; then
-  rm -f "$WFP_PATH"
+if (( RELINKED_COUNT > 0 )); then
+  print -P "  %F{white}Next: open the relinked project(s) in Filmora, drop the mp3 samples into%f"
+  print -P "  %F{white}assets/videos/ if missing, relink any offline media by hand, then export.%f"
+  print ""
 fi
-
-print ""
-print -P "  %F{green}✓%f  videos/${NEW_WFP_PATH:t}"
-print -P "  %F{white}Relinked to this release's assets/videos/ folder.%f"
-print ""
-print -P "  %F{white}Next: open it in Filmora, drop the mp3 samples into assets/videos/,%f"
-print -P "  %F{white}relink the two audio clips by hand, then export.%f"
-print ""

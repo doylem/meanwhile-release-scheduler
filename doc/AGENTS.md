@@ -81,6 +81,16 @@ Verified:
   from `export-video-assets.sh` and confirmed idempotent (no-ops cleanly if already
   relinked). Not yet confirmed by actually opening the result in Filmora itself (only
   verified by reading the rewritten archive's contents back).
+- `relink-video-project.sh` multi-project support (added for Spotify Canvas videos):
+  now loops over every `.wfp` in `assets/videos/` instead of requiring exactly one.
+  Verified on MW091 with two projects present (`MW091_promo_video_square.wfp` +
+  `MWxxx_spotify_canvas.wfp` copied from MW090's template) — the already-relinked
+  promo video was correctly skipped as a no-op, the spotify canvas project was
+  relinked and renamed to `MW091_spotify_canvas.wfp`, and a pre-existing stale path
+  bug (spotify-bg.png referenced under a non-existent `spotify/` subfolder, present in
+  both the MW090 original and the shared template) was fixed as part of the same pass.
+  Verified first against scratch copies in `/tmp`, then run for real against the live
+  Dropbox folder. Not yet confirmed by opening the result in Filmora.
 
 **Not yet verified:**
 - Real Google Calendar OAuth flow, actual event creation/update/delete, `privateExtendedProperty`

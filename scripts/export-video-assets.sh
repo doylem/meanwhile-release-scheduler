@@ -30,7 +30,8 @@
 #   mark.png               the centre mark on a transparent background
 #
 # On success, chains straight into relink-video-project.sh with the same label/cat
-# args (Phase 2 — relinks a copied Filmora .wfp project to this release).
+# args (Phase 2 — relinks every copied Filmora .wfp project found in assets/videos/
+# to this release, e.g. the main square promo and/or a Spotify Canvas project).
 #
 # Usage:
 #   Interactive:     ./scripts/export-video-assets.sh

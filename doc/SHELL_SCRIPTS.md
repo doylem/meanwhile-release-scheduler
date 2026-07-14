@@ -50,11 +50,19 @@ for promo videos. Run *after* `new-release.sh` when artwork is finalised:
 - Usage: `./scripts/export-video-assets.sh` (interactive) or
   `./scripts/export-video-assets.sh MW MW091`.
 
-**`scripts/relink-video-project.sh`** — Phase 2: relinks a Filmora `.wfp` project file
-copied in from a previous release so it points at the current one. Run after copying a
-template `.wfp` into `assets/videos/` — normally invoked automatically at the end of
+**`scripts/relink-video-project.sh`** — Phase 2: relinks every Filmora `.wfp` project
+file copied in from a previous release (or the shared `MWxxx - Template (copy me)`
+folder) so each one points at the current release. Run after copying template `.wfp`
+project(s) into `assets/videos/` — normally invoked automatically at the end of
 `export-video-assets.sh`, but can be run standalone too. Pure file manipulation — no
 Photoshop involved:
+- A release can have more than one video project — e.g. `MW090_promo_video_square.wfp`
+  (the main square promo, built from per-track `bg{n}.png`) and
+  `MW090_spotify_canvas.wfp` (a simpler portrait/9:16 video for Spotify Canvas, using a
+  static `spotify-bg.png` background instead, but the same `mark.png`). The script finds
+  **every** `.wfp` in `assets/videos/` and relinks each independently in a loop — there's
+  no special-casing per project type, since the relink logic is driven entirely by
+  what's already inside that `.wfp`'s own `project_info.json`, not its filename.
 - A `.wfp` is a zip archive. Every media reference (`ProjectFolder/project_info.json`,
   `Medias/medias_info.json`, `Medias/*/media.json`, `Medias/*/timeline.wesproj`) stores
   an **absolute path** back to wherever it was imported from, so a copied `.wfp` still
@@ -72,10 +80,16 @@ Photoshop involved:
   cache path (`~/Movies/Wondershare Filmora Mac/Backup/...`) are left alone.
 - Rebuilds the zip with `zip -X -D` (no directory entries, matching the original's flat
   16-entries-file structure) under the new stem name, removes the old-named file.
-- If the `.wfp` already points at the current release (e.g. re-running the chained
-  export), it detects that and exits cleanly with nothing to do.
+- If a `.wfp` already points at the current release (e.g. re-running the chained
+  export), it's detected and skipped cleanly — the loop still processes the rest.
+  Prints a final `Relinked N, skipped N, of N project(s)` summary and exits non-zero
+  only if any project's zip couldn't be read/rebuilt.
 - Leaves mp3 samples alone entirely — those get dropped in and relinked by hand in
   Filmora, then exported. That's intentionally manual.
+- Also fixes one known stale path while it's in there: the spotify-canvas template's
+  `spotify-bg.png` reference points at a `spotify/` subfolder that hasn't existed since
+  the template was created — the file has always lived directly in `assets/videos/`.
+  A no-op for any `.wfp` that doesn't reference that path (i.e. the square promo).
 - Usage: `./scripts/relink-video-project.sh` (interactive) or
   `./scripts/relink-video-project.sh MW MW091`.
 
