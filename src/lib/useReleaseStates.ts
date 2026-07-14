@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GITHUB_OWNER, GITHUB_REPO } from './clientConfig';
+import { useGithubConnection } from './githubConnection';
+import { setTaskCompletion } from './taskCompletion';
 import type { ReleaseState } from './types';
 
 /**
@@ -13,9 +15,13 @@ import type { ReleaseState } from './types';
 export function useReleaseStates(catalogueNumbers: string[]): {
   states: Record<string, ReleaseState>;
   refresh: () => void;
+  toggleTask: (catalogueNumber: string, taskId: string, done: boolean) => Promise<void>;
+  taskError: string | null;
 } {
+  const { connection } = useGithubConnection();
   const [states, setStates] = useState<Record<string, ReleaseState>>({});
   const [tick, setTick] = useState(0);
+  const [taskError, setTaskError] = useState<string | null>(null);
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   const catKey = catalogueNumbers.join(',');
 
@@ -51,5 +57,32 @@ export function useReleaseStates(catalogueNumbers: string[]): {
     };
   }, [catKey, tick]);
 
-  return { states, refresh };
+  const toggleTask = useCallback(
+    async (cat: string, taskId: string, done: boolean) => {
+      if (!connection) {
+        setTaskError('Connect GitHub before tracking task completion.');
+        return;
+      }
+      setTaskError(null);
+      // Optimistic update — reflect the click immediately, reconcile with the
+      // server response (or roll back via refresh) once the write settles.
+      setStates((prev) => {
+        const existing = prev[cat] ?? { catalogueNumber: cat };
+        const set = new Set(existing.completedTasks ?? []);
+        if (done) set.add(taskId);
+        else set.delete(taskId);
+        return { ...prev, [cat]: { ...existing, completedTasks: [...set] } };
+      });
+      try {
+        const updated = await setTaskCompletion(cat, taskId, done, connection.token);
+        setStates((prev) => ({ ...prev, [cat]: updated }));
+      } catch (err) {
+        setTaskError(err instanceof Error ? err.message : String(err));
+        refresh();
+      }
+    },
+    [connection, refresh]
+  );
+
+  return { states, refresh, toggleTask, taskError };
 }

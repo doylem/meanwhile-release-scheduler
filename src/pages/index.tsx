@@ -119,8 +119,9 @@ function App() {
     ...(manifestEntries ?? []).map((m) => ({ label: m.label, catalogueNumber: m.catalogueNumber })),
   ], [localReleases, manifestEntries]);
 
-  const { states: releaseStates, refresh: refreshStates } =
+  const { states: releaseStates, refresh: refreshStates, toggleTask, taskError } =
     useReleaseStates(allCatalogueNumbers);
+  const { connection } = useGithubConnection();
 
   const handleAutoSave = useCallback(
     (input: ReleaseInput) => {
@@ -286,7 +287,7 @@ function App() {
       {modalOpen && (
         <ReleaseModal
           onClose={() => setModalOpen(false)}
-          wide={modalStep !== "form"}
+          size={modalStep === "detail" ? "xwide" : modalStep === "preview" ? "wide" : "default"}
         >
           <div className="space-y-6">
             <div className="flex items-start justify-between border-b border-wire/15 pb-5">
@@ -340,6 +341,11 @@ function App() {
                 releaseState={releaseStates[release.catalogueNumber]}
                 onStateChange={refreshStates}
                 onScheduled={handleScheduled}
+                onToggleTask={(taskId, done) =>
+                  toggleTask(release.catalogueNumber, taskId, done)
+                }
+                taskTrackingDisabled={!connection}
+                taskError={taskError}
                 onReleaseMoved={(r) => {
                   setRelease(r);
                   refreshManifest();
@@ -637,6 +643,10 @@ function LandingPage({
                         releaseStates[item.local.input.catalogueNumber]
                           ?.coverArtUrl
                       }
+                      completedTasks={
+                        releaseStates[item.local.input.catalogueNumber]
+                          ?.completedTasks
+                      }
                       onEdit={() => onEditLocal(item.local)}
                       onActions={() => onActionsLocal(item.local)}
                       onDelete={() => onDeleteLocal(item.local.id)}
@@ -687,6 +697,9 @@ function LandingPage({
                   manifestEntries={manifestEntries}
                   coverArtUrl={
                     releaseStates[local.input.catalogueNumber]?.coverArtUrl
+                  }
+                  completedTasks={
+                    releaseStates[local.input.catalogueNumber]?.completedTasks
                   }
                   onEdit={() => onEditLocal(local)}
                   onActions={() => onActionsLocal(local)}
@@ -767,6 +780,7 @@ function LocalReleaseCard({
   local,
   manifestEntries,
   coverArtUrl,
+  completedTasks,
   onEdit,
   onActions,
   onDelete,
@@ -775,6 +789,7 @@ function LocalReleaseCard({
   local: LocalRelease;
   manifestEntries: ManifestEntry[] | null;
   coverArtUrl?: string;
+  completedTasks?: string[];
   onEdit: () => void;
   onActions: () => void;
   onDelete: () => void;
@@ -944,18 +959,20 @@ function LocalReleaseCard({
                   const d = daysUntil(task.dueDateISO);
                   const isPastTask = d < 0;
                   const isToday = d === 0;
+                  const isDone = completedTasks?.includes(task.id) ?? false;
                   return (
                     <li key={task.id} className="flex items-start gap-2 px-3 py-1">
                       <span
                         className="text-[10px] font-mono flex-shrink-0 w-14 pt-px"
-                        style={{ color: isPastTask ? "#2a3d50" : isToday ? "#e08010" : "#4a6a80" }}
+                        style={{ color: isDone ? "#5a8a6a" : isPastTask ? "#2a3d50" : isToday ? "#e08010" : "#4a6a80" }}
                       >
                         {formatTaskDate(task.dueDateISO)}
                       </span>
                       <span
-                        className="text-xs font-mono leading-tight"
-                        style={{ color: isPastTask ? "#2e4a5e" : isToday ? "#e08010" : "#8aa8be" }}
+                        className={`text-xs font-mono leading-tight ${isDone ? "line-through" : ""}`}
+                        style={{ color: isDone ? "#7fb88a" : isPastTask ? "#2e4a5e" : isToday ? "#e08010" : "#8aa8be" }}
                       >
+                        {isDone && "✓ "}
                         {task.title}
                       </span>
                     </li>
@@ -1359,11 +1376,11 @@ function NewReleaseCard({ onClick }: { onClick: () => void }) {
 function ReleaseModal({
   children,
   onClose,
-  wide = false,
+  size = "default",
 }: {
   children: React.ReactNode;
   onClose: () => void;
-  wide?: boolean;
+  size?: "default" | "wide" | "xwide";
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -1389,7 +1406,9 @@ function ReleaseModal({
       }}
     >
       <div
-        className={`relative w-full ${wide ? "max-w-4xl" : "max-w-2xl"} rounded-2xl border border-wire/20 mb-12 mx-4`}
+        className={`relative w-full ${
+          size === "xwide" ? "max-w-6xl" : size === "wide" ? "max-w-4xl" : "max-w-2xl"
+        } rounded-2xl border border-wire/20 mb-12 mx-4`}
         style={{
           background: "linear-gradient(170deg, #172c48 0%, #0f2035 100%)",
           boxShadow:

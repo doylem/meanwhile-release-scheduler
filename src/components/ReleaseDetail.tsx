@@ -59,6 +59,9 @@ export function ReleaseDetail({
   onScheduled,
   onStateChange,
   dryRun,
+  onToggleTask,
+  taskTrackingDisabled,
+  taskError,
 }: {
   release: Release;
   releaseState?: ReleaseState;
@@ -66,6 +69,9 @@ export function ReleaseDetail({
   onScheduled?: () => void;
   onStateChange?: () => void;
   dryRun: boolean;
+  onToggleTask?: (taskId: string, done: boolean) => void;
+  taskTrackingDisabled?: boolean;
+  taskError?: string | null;
 }) {
   const { settings } = useSettings();
   const label = findLabel(settings.labels, release.label);
@@ -220,6 +226,10 @@ export function ReleaseDetail({
           ].filter((s): s is { label: string; done: boolean } => Boolean(s))}
         />
       )}
+
+      {/* Two-pane split: action flow on the left, task checklist on the right */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_320px] gap-5">
+      <div className="space-y-5 min-w-0">
 
       {/* 1. Check release files */}
       {features.dropbox && <CollapsibleSection
@@ -513,8 +523,103 @@ export function ReleaseDetail({
           </p>
         )}
       </CollapsibleSection>
+
+      </div>
+
+      <div className="hidden lg:block w-px bg-wire/15" />
+
+      <TaskChecklist
+        tasks={release.tasks}
+        completedTasks={releaseState?.completedTasks ?? []}
+        onToggle={onToggleTask}
+        disabled={Boolean(taskTrackingDisabled)}
+        error={taskError}
+      />
+
+      </div>
     </div>
   );
+}
+
+function TaskChecklist({
+  tasks,
+  completedTasks,
+  onToggle,
+  disabled,
+  error,
+}: {
+  tasks: Release['tasks'];
+  completedTasks: string[];
+  onToggle?: (taskId: string, done: boolean) => void;
+  disabled: boolean;
+  error?: string | null;
+}) {
+  const done = new Set(completedTasks);
+  const doneCount = tasks.filter((t) => done.has(t.id)).length;
+
+  return (
+    <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-mono uppercase tracking-wider text-muted">Release tasks</p>
+        <p className="text-xs font-mono text-ghost">
+          {doneCount}/{tasks.length} done
+        </p>
+      </div>
+
+      {disabled && (
+        <p className="text-[11px] font-mono text-gold/80 bg-gold/8 border border-gold/20 rounded-lg px-3 py-2">
+          Connect GitHub to check off tasks — completion is saved to the results branch.
+        </p>
+      )}
+      {error && <ErrorLine>{error}</ErrorLine>}
+
+      {tasks.length === 0 ? (
+        <p className="text-xs font-mono text-ghost">No tasks scheduled.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {tasks.map((task) => {
+            const isDone = done.has(task.id);
+            return (
+              <li key={task.id}>
+                <label
+                  className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                    isDone ? 'border-lime/20 bg-lime/5' : 'border-wire/15 bg-elevated/15 hover:bg-elevated/25'
+                  } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isDone}
+                    disabled={disabled}
+                    onChange={(e) => onToggle?.(task.id, e.target.checked)}
+                    className="mt-0.5 w-3.5 h-3.5 accent-lime flex-shrink-0"
+                  />
+                  <span className="flex-1 min-w-0">
+                    <span
+                      className={`block text-xs font-mono leading-tight ${
+                        isDone ? 'text-lime/70 line-through' : 'text-snow/85'
+                      }`}
+                    >
+                      {isDone && '✓ '}
+                      {task.title}
+                    </span>
+                    <span className="block text-[10px] font-mono text-ghost mt-0.5">
+                      {formatTaskDate(task.dueDateISO)} · {task.owner}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function formatTaskDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y!, m! - 1, d!);
+  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
 function CollapsibleSection({

@@ -81,6 +81,8 @@ export interface ReleaseState {
   dropbox?: { checkedAt: string; folderFound: boolean };
   calendar?: { scheduledAt: string; eventCount: number };
   email?: { draftedAt: string };
+  /** ScheduledTask.id values the user has manually checked off as done. */
+  completedTasks?: string[];
 }
 
 export interface ManifestEntry {
