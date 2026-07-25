@@ -1,0 +1,39 @@
+{
+  "requestId": "596b9cdc-8054-4167-8edc-251cc375a2a0",
+  "completedAt": "2026-07-25T07:04:42.621Z",
+  "ok": true,
+  "catalogueNumber": "MW092",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW092 - Juan Deminicis, Casnik EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 1
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/f17useo4oabvje5c3uryp/AJvHHjSr8CEwcYRMZOcyjpc?rlkey=btm5j07wgwv0k7l68giz2sxvx&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/21n4rmrhxstsjq6mlcdw9/ALGWhtBT4rgIV-eAEP08uV0?rlkey=p59f3wbbtd1q7fmx1cdm9803x&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/7q0utx2nwny93i7yjdrun/ACy4j0F8qZbxwdpvGpBP4nk?rlkey=f8x5rlspt250sv09clp7hmb0f&dl=0"
+  }
+}
