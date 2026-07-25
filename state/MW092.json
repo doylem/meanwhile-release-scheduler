@@ -3,5 +3,8 @@
   "dropbox": {
     "checkedAt": "2026-07-25T07:04:42.622Z",
     "folderFound": true
-  }
+  },
+  "completedTasks": [
+    "prepare-masters"
+  ]
 }
