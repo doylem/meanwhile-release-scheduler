@@ -1040,6 +1040,7 @@ function LocalReleaseCard({
   const dateTrigger = useRef<HTMLDivElement>(null);
   const taskTagTrigger = useRef<HTMLDivElement>(null);
   const { tipPos, enter: enterTip, leave: leaveTip, cancelClose: cancelTipClose } = useTaskHoverTooltip();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const borderClass =
     completeness === "draft"
@@ -1108,7 +1109,7 @@ function LocalReleaseCard({
             <img
               src={coverArtUrl}
               alt=""
-              className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
+              className="w-24 h-24 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
             />
           )}
         </div>
@@ -1199,7 +1200,7 @@ function LocalReleaseCard({
             </>
           )}
           <button
-            onClick={onDelete}
+            onClick={() => setConfirmDelete(true)}
             className="flex-shrink-0 w-8 rounded-lg border border-wire/15 flex items-center justify-center text-ghost/40 hover:text-signal hover:border-signal/30 hover:bg-signal/8 transition-all"
             title="Delete release"
           >
@@ -1207,6 +1208,40 @@ function LocalReleaseCard({
           </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <ReleaseModal onClose={() => setConfirmDelete(false)}>
+          <div className="space-y-5">
+            <div>
+              <h2 className="font-mono font-semibold text-snow text-lg tracking-tight">
+                Delete release?
+              </h2>
+              <p className="text-sm text-muted mt-1 font-mono">
+                {input.artist || "This release"}
+                {input.catalogueNumber ? ` — ${input.catalogueNumber}` : ""} will be permanently
+                deleted. This can&apos;t be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm font-mono text-muted hover:text-snow transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                  onDelete();
+                }}
+                className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-snow bg-signal/80 hover:bg-signal transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </ReleaseModal>
+      )}
     </div>
   );
 }
@@ -1302,7 +1337,7 @@ function ManifestOnlyCard({
             <img
               src={coverArtUrl}
               alt=""
-              className="w-14 h-14 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
+              className="w-24 h-24 rounded-lg object-cover flex-shrink-0 opacity-85 border border-wire/20"
             />
           )}
         </div>
