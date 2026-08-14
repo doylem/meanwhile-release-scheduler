@@ -1,0 +1,42 @@
+{
+  "requestId": "be524543-faf4-4743-8618-6ff5c29ae8e2",
+  "completedAt": "2026-08-14T09:23:34.019Z",
+  "ok": true,
+  "catalogueNumber": "MW092",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW092 - Juan Deminicis, Casnik EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 6
+    },
+    "videos": {
+      "found": true,
+      "fileCount": 2
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 6
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/pa1cyp3pqwr41bszgyenl/Meanwhile-Release-Cover.jpg?rlkey=lmh0s26uekp95hu9e07bkd338&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/f17useo4oabvje5c3uryp/AJvHHjSr8CEwcYRMZOcyjpc?rlkey=btm5j07wgwv0k7l68giz2sxvx&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/1stqopvt7exmwti685x98/AAQ5DlJulsLC6VfYOx2eY3U?rlkey=rbuoiosigacd4q48rgxdgmb1h&dl=0",
+    "videos": "https://www.dropbox.com/scl/fo/h5avaz3r5483lmyr4rfqw/ANs_kmkjieC7U--E_qsyZX0?rlkey=lynmjeqbbwwbdt1d6gisjl05c&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/21n4rmrhxstsjq6mlcdw9/ALGWhtBT4rgIV-eAEP08uV0?rlkey=p59f3wbbtd1q7fmx1cdm9803x&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/7q0utx2nwny93i7yjdrun/ACy4j0F8qZbxwdpvGpBP4nk?rlkey=f8x5rlspt250sv09clp7hmb0f&dl=0"
+  }
+}
