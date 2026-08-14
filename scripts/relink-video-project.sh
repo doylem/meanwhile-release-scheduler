@@ -48,6 +48,14 @@
 # the template was created — the file has always lived directly in assets/videos/.
 # A no-op for any .wfp that doesn't reference that path.
 #
+# Finally, prunes any media entry that's both missing on disk and not referenced
+# anywhere in the project — the usual cause is a naming convention that changed
+# between releases (e.g. Horizons' old capitalized "Titles1.png"/"Titles2.png" vs the
+# current lowercase "titles1.png"/"titles2.png"/"titles3.png"), carried forward as
+# harmless-looking but orphaned entries every time a .wfp is copied to start a new
+# release. This runs even when nothing needed renaming, so re-running against an
+# already-correct project still cleans it up.
+#
 # mp3 samples are intentionally left alone — drop those into assets/videos/ and
 # relink the two audio clips by hand in Filmora, then export.
 #
@@ -174,7 +182,7 @@ for WFP_PATH in "${WFP_FILES[@]}"; do
 
   # ── COMPUTE OLD/NEW FOLDER + STEM, REWRITE TEXT FILES ─────────────────────
   python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" << 'PYEOF'
-import json, os, re, sys, glob
+import json, os, re, shutil, sys, glob
 
 work_dir, project_info_path, new_folder_basename, cat_number = sys.argv[1:5]
 
@@ -279,7 +287,62 @@ if stale:
         json.dump({k: sorted(v) for k, v in stale.items()}, f)
     sys.exit(0)  # do not write .relink_result — refuse to ship a partial fix
 
-if not needs_rename:
+# ── PRUNE: drop orphaned media entries that are both missing on disk and unused ──
+# A .wfp copied forward from an older release can carry media entries whose filename
+# convention has since changed (e.g. MWH024's old "Titles1.png"/"Titles2.png" vs the
+# current "titles1.png"/"titles2.png"/"titles3.png") — after the folder substitution
+# above they resolve to a path that never existed for THIS release either. Only prune
+# an entry if it's both missing on disk AND not referenced by any file:// path
+# elsewhere in the project — something actually used stays untouched even if it
+# happens to be offline right now (e.g. not yet synced locally).
+medias_info_path = os.path.join(work_dir, "ProjectFolder", "Medias", "medias_info.json")
+pruned = []
+if os.path.isfile(medias_info_path):
+    with open(medias_info_path) as f:
+        medias_info = json.load(f)
+    media_items = medias_info.get("media_items", {})
+
+    used_paths = set()
+    for path in text_files:
+        if path == medias_info_path:
+            continue
+        with open(path, "r", encoding="utf-8", errors="strict") as f:
+            content = f.read()
+        for m in re.finditer(r'"file://([^"]*)"', content):
+            used_paths.add(m.group(1))
+
+    def exists_exact_case(path):
+        # os.path.isfile() resolves case-insensitively on the default macOS/APFS
+        # filesystem, so "Titles1.png" would incorrectly report as existing when
+        # only "titles1.png" is actually there. Check the directory listing instead.
+        dir_path, filename = os.path.split(path)
+        try:
+            return filename in os.listdir(dir_path)
+        except OSError:
+            return False
+
+    for media_id, item in list(media_items.items()):
+        download_url = item.get("download_url", "")
+        if not download_url:
+            continue  # structural entries (e.g. the sequence "Folder"), not real media
+        if exists_exact_case(download_url):
+            continue
+        if download_url.lstrip("/") in used_paths:
+            continue
+        pruned.append((media_id, item.get("name", ""), download_url))
+        del media_items[media_id]
+        media_folder = os.path.join(work_dir, "ProjectFolder", "Medias", media_id)
+        if os.path.isdir(media_folder):
+            shutil.rmtree(media_folder)
+
+    if pruned:
+        with open(medias_info_path, "w") as f:
+            json.dump(medias_info, f)
+        print("  PRUNED_COUNT=%d" % len(pruned))
+        for media_id, name, path in pruned:
+            print("    PRUNED: " + name + " (" + media_id + ") -> " + path)
+
+if not needs_rename and not pruned:
     print("  NOFIX: already points at this release (%s)" % old_folder_basename)
     sys.exit(0)
 
