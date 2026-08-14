@@ -1,0 +1,16 @@
+{
+  "requestId": "8f2ffca1-7ca5-43e2-91ba-10f301e6104a",
+  "completedAt": "2026-08-14T12:30:55.147Z",
+  "ok": true,
+  "dryRun": true,
+  "catalogueNumber": "MWH026",
+  "pathsSearched": [
+    "/- MEANWHILE/Releases - Horizons",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/release pack/masters",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/release pack/artwork",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/release pack/videos",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/assets",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/premasters",
+    "/- MEANWHILE/Releases - Horizons/<matched folder>/remix packs"
+  ]
+}
