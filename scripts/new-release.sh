@@ -59,7 +59,7 @@ configure_label() {
       # top-right rather than top-left.
       PSB_ARTIST="MWH - Artist name.psb"; LAYER_ARTIST="ARTIST_NAME";      JUST_ARTIST="LEFT"
       PSB_TRACKS="MWH - track names.psb"; LAYER_TRACKS="TRACK_NAMES";      JUST_TRACKS="RIGHT"
-      PSB_CAT="MWH - Catalogue.psb";      LAYER_CAT="RELEASE_CATALOGUE";   JUST_CAT="LEFT"
+      PSB_CAT="MWH - Catalogue.psb";      LAYER_CAT="RELEASE_CATALOGUE";   JUST_CAT="RIGHT"
       SMART_OBJECTS_JS='[
         {layerName:"ARTIST",     psbFile:"MWH - Artist name.psb"},
         {layerName:"CATALOGUE",  psbFile:"MWH - Catalogue.psb"},

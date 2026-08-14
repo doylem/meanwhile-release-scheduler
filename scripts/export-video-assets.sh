@@ -1,41 +1,46 @@
 #!/bin/zsh
-# export-video-assets.sh — Export per-track PNG backgrounds and mark PNG for promo videos
+# export-video-assets.sh — Export promo-video image layers from the finished artwork
 #
-# Run AFTER new-release.sh — the TIF must already have the correct artwork, and
+# Run AFTER new-release.sh — the master file must already have the correct artwork, and
 # assets/images/{PSB_TRACKS} (copied there by new-release.sh) must hold the correct
 # multi-line track list.
 #
-# The TIF is not one flat design — it's several side-by-side Photoshop artboards
-# (Story, 4x5, Cover, FB Banner, SC Banner, Spotify Banner) on one large canvas, each
-# with its own independent Mark / TRACK 1 TRACK 2 / Background layers. This script
-# targets ARTBOARD_NAME only (the square "Cover" board for MW) and isolates it with
-# Document.trim() — Document.crop() does not work on documents containing real
-# Photoshop Artboards (confirmed by testing: it silently no-ops).
+# MW and Horizons compose their promo videos differently, so what gets exported differs:
+#   MW:       bg{n}.png (background + track name baked together, mark hidden) + mark.png
+#   Horizons: sky.png (background alone, no text) + titles{n}.png (artist/catalogue/track
+#             name + wordmark, transparent, mark+background hidden) + mark.png (the sun)
+# Both still export one "everything else" pass per track plus one mark pass, so the
+# track-reading (Stage 1) and mark export (part of Stage 3) share the same helpers —
+# only which layers get hidden for the "per track" pass, and whether there's a separate
+# flat-background pass, differs per label.
 #
-# The TIF's track-name text is NOT a plain text layer — it's a Smart Object (see
-# SMART_OBJECTS_JS in new-release.sh, e.g. "TRACK 1 TRACK 2" for MW). Its link
-# target is THIS RELEASE'S OWN assets/images/{PSB_TRACKS} — not the shared
-# template copy (confirmed via the Action Manager smartObject descriptor's "link"
-# path; new-release.sh's comment claiming it's the template folder is wrong for
-# this file). So to show a single track name in each bg{n}.png, this script has to,
-# per track:
+# The master file is not one flat design — it's several side-by-side Photoshop artboards
+# (Story, 4x5/Cover Square, FB Banner, SC Banner, Spotify) on one large canvas, each
+# with its own independent set of layers. This script targets ARTBOARD_NAME only (the
+# square "Cover" board) and isolates it with Document.trim() — Document.crop() does not
+# work on documents containing real Photoshop Artboards (confirmed by testing: it
+# silently no-ops), and these boards are plain positioned groups rather than real
+# Artboards anyway, so trim-on-transparency is the reliable option either way.
+#
+# The track-name text is NOT a plain text layer — it's a Smart Object (see
+# SMART_OBJECTS_JS in new-release.sh). Its link target is THIS RELEASE'S OWN
+# assets/images/{PSB_TRACKS} — not the shared template copy (confirmed via the Action
+# Manager smartObject descriptor's "link" path). So to show a single track name in each
+# per-track export, this script has to, per track:
 #   1. write that one track name into the release's own archived PSB
-#   2. open the TIF fresh (a live/already-open document does not pick up the
+#   2. open the master file fresh (a live/already-open document does not pick up the
 #      change — confirmed by testing; only a fresh open resolves current content)
 #   3. export the PNG
 # then restore the archived PSB to the full track list afterwards.
 #
-# Exports to {release folder}/assets/videos/:
-#   bg1.png, bg2.png, ...  one per track (mark hidden, single track name)
-#   mark.png               the centre mark on a transparent background
-#
 # On success, chains straight into relink-video-project.sh with the same label/cat
 # args (Phase 2 — relinks every copied Filmora .wfp project found in assets/videos/
-# to this release, e.g. the main square promo and/or a Spotify Canvas project).
+# to this release; relink-video-project.sh itself needs no label-specific logic).
 #
 # Usage:
 #   Interactive:     ./scripts/export-video-assets.sh
 #   Non-interactive: ./scripts/export-video-assets.sh MW MW090
+#                     ./scripts/export-video-assets.sh MWH MWH024
 
 # ── LABEL CONFIGS ─────────────────────────────────────────────────────────────
 LABEL_KEYS=("MW" "MWH")
@@ -48,6 +53,7 @@ configure_label() {
       LABEL_NAME="Meanwhile Recordings"
       TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MW"
       RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      MASTER_EXT="tif"
       MARK_PSB="MW - mark.psb"
       PSB_TRACKS="MW - track names.psb"
       # Static logo asset — copy meanwhile_RGB_logo_2023-no-border.png into
@@ -63,13 +69,20 @@ configure_label() {
       LABEL_NAME="Meanwhile Horizons"
       TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"
       RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
-      MARK_PSB=""
-      PSB_TRACKS=""
-      LOGO_PNG=""
+      MASTER_EXT="psd"
+      MARK_PSB="MWH - mark.psb"
+      PSB_TRACKS="MWH - track names.psb"
+      LOGO_PNG="${TEMPLATE_DIR}/Meanwhile-horizons-beatport-logo-cropped.png"
       LAYER_TRACKS="TRACK_NAMES"
-      LAYER_MARK="Mark"
-      JUST_TRACKS="LEFT"
-      ARTBOARD_NAME=""
+      LAYER_MARK="Behind"
+      JUST_TRACKS="RIGHT"
+      ARTBOARD_NAME="MWH Release Cover Square"
+      # Horizons splits its per-track export into a flat background (no text) and a
+      # transparent text/logo overlay, unlike MW which bakes text into the background —
+      # so the per-track pass hides Background+Behind (mark) and shows everything else,
+      # and there's an extra background-only pass hiding everything except Background.
+      HIDE_FOR_TITLES=("$LAYER_MARK" "Background")
+      HIDE_FOR_SKY=("$LAYER_MARK" "Artist + Catalogue" "Tracks" "Horizons logo")
       ;;
 
   esac
@@ -118,7 +131,7 @@ else
 fi
 
 # ── GUARD: unconfigured label ──────────────────────────────────────────────────
-if [[ ( -z "$MARK_PSB" || -z "$PSB_TRACKS" || -z "$ARTBOARD_NAME" ) && "$LABEL_KEY" != "MW" ]]; then
+if [[ -z "$MARK_PSB" || -z "$PSB_TRACKS" || -z "$ARTBOARD_NAME" ]]; then
   print -P "%F{red}$LABEL_NAME is not fully configured yet.%f"
   print -P "%F{white}Open scripts/export-video-assets.sh and complete the $LABEL_KEY block.%f"
   exit 1
@@ -142,14 +155,14 @@ fi
 
 ASSETS_DIR="${RELEASE_DIR}/assets/images"
 VIDEOS_DIR="${RELEASE_DIR}/assets/videos"
-TIF_PATH="${ASSETS_DIR}/${CAT_NUMBER} - Release Assets.tif"
+TIF_PATH="${ASSETS_DIR}/${CAT_NUMBER} - Release Assets.${MASTER_EXT}"
 # Both PSBs are read from this release's own archived copies — that's what the
-# TIF's Smart Objects are actually linked to, not the shared template.
+# master file's Smart Objects are actually linked to, not the shared template.
 MARK_PSB_PATH="${ASSETS_DIR}/${MARK_PSB}"
 TRACKS_PSB_PATH="${ASSETS_DIR}/${PSB_TRACKS}"
 
 if [[ ! -f "$TIF_PATH" ]]; then
-  print -P "%F{red}TIF not found: ${TIF_PATH:t}%f"
+  print -P "%F{red}Master file not found: ${TIF_PATH:t}%f"
   print -P "%F{white}Run new-release.sh first to set up the release artwork.%f"
   exit 1
 fi
@@ -167,7 +180,7 @@ if [[ ! -f "$TRACKS_PSB_PATH" ]]; then
 fi
 
 print -P "%F{white}Release:%f  ${RELEASE_DIR:t}"
-print -P "%F{white}TIF:%f      ${CAT_NUMBER} - Release Assets.tif"
+print -P "%F{white}Master:%f   ${TIF_PATH:t}"
 print -P "%F{white}Output:%f   assets/videos/"
 print ""
 
@@ -175,6 +188,18 @@ START_EPOCH=$(date +%s)
 
 # ── ESCAPE HELPER ─────────────────────────────────────────────────────────────
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+# JS array literal of quoted strings, e.g. jsArray(("A" "B")) -> ["A","B"]
+jsArray() {
+  local out="[" first=1
+  for item in "$@"; do
+    if [[ $first -eq 0 ]]; then out+=","; fi
+    out+="\"$(esc "$item")\""
+    first=0
+  done
+  out+="]"
+  print -n "$out"
+}
 
 # Shared JSX helper functions, inlined into every generated file below.
 JSX_HELPERS='
@@ -211,12 +236,13 @@ function setTrackText(psbPath, layerName, text, justification) {
   doc.close(SaveOptions.DONOTSAVECHANGES);
 }
 
-// Isolate ARTBOARD_NAME in a fresh duplicate of the TIF: hide every sibling
-// top-level artboard, hide the Mark layer within the target, then trim.
-// Document.crop() does not work on documents containing real Photoshop
-// Artboards (confirmed by testing: it silently no-ops), so trim() is used
-// instead, based on pixel transparency rather than artboard bounds metadata.
-function makeExportDoc(tifPath, artboardName, layerMark) {
+// Isolate ARTBOARD_NAME in a fresh duplicate of the master file: hide every sibling
+// top-level board, hide each name in hideNames within the target board (everything
+// else in the target board keeps its authored visibility), then trim. Document.crop()
+// does not work on documents containing real Photoshop Artboards (confirmed by
+// testing: it silently no-ops), so trim() is used instead, based on pixel
+// transparency rather than artboard bounds metadata.
+function makeExportDoc(tifPath, artboardName, hideNames) {
   var tifDoc = open(new File(tifPath));
   var exportDoc = tifDoc.duplicate("mw_video_export", false);
   tifDoc.close(SaveOptions.DONOTSAVECHANGES);
@@ -235,8 +261,10 @@ function makeExportDoc(tifPath, artboardName, layerMark) {
     return null;
   }
 
-  var markLayer = findLayer(target.layers, layerMark);
-  if (markLayer) markLayer.visible = false;
+  for (var h = 0; h < hideNames.length; h++) {
+    var hideLayer = findLayer(target.layers, hideNames[h]);
+    if (hideLayer) hideLayer.visible = false;
+  }
 
   exportDoc.trim(TrimType.TRANSPARENT, true, true, true, true);
   return exportDoc;
@@ -244,10 +272,15 @@ function makeExportDoc(tifPath, artboardName, layerMark) {
 '
 
 run_jsx() {
+  # AppleScript's default Apple Event timeout is 120s — too short once a document
+  # this large (100MB+ master, 600MB+ linked background for Horizons) is involved,
+  # so it's raised explicitly here rather than relying on the default.
   osascript << APPLEEOF > /dev/null
-tell application "Adobe Photoshop 2026"
-  do javascript of file "$1"
-end tell
+with timeout of 1800 seconds
+  tell application "Adobe Photoshop 2026"
+    do javascript of file "$1"
+  end tell
+end timeout
 APPLEEOF
 }
 
@@ -301,13 +334,35 @@ print -P "  %F{white}Tracks (${#tracks[@]}):%f  ${(j:, :)tracks}"
 print ""
 
 # ── STAGE 2: per track — write single track name into the archived PSB, open  ─
-#             the TIF fresh, export bg{n}.png ─────────────────────────────────
+#             the master file fresh, export the per-track image(s) ───────────
 for (( n = 1; n <= ${#tracks[@]}; n++ )); do
   TRACK_NAME="${tracks[$n]}"
   print -P "  %F{white}Track ${n}:%f  ${TRACK_NAME}"
 
   EXPORT_BG_JSX="/tmp/meanwhile-video-export-bg-${CAT_NUMBER}-${n}.jsx"
-  cat > "$EXPORT_BG_JSX" << JSXEOF
+
+  if [[ "$LABEL_KEY" == "MWH" ]]; then
+    cat > "$EXPORT_BG_JSX" << JSXEOF
+${JSX_HELPERS}
+var PSB_PATH      = "$(esc "$TRACKS_PSB_PATH")";
+var LAYER_TRACKS  = "$(esc "$LAYER_TRACKS")";
+var JUST_TRACKS   = "$(esc "$JUST_TRACKS")";
+var TRACK_TEXT    = "$(esc "$TRACK_NAME")";
+var TIF_PATH      = "$(esc "$TIF_PATH")";
+var ARTBOARD_NAME = "$(esc "$ARTBOARD_NAME")";
+var HIDE_NAMES    = $(jsArray "${HIDE_FOR_TITLES[@]}");
+var OUT_PATH      = "$(esc "${VIDEOS_DIR}/titles${n}.png")";
+
+setTrackText(PSB_PATH, LAYER_TRACKS, TRACK_TEXT, JUST_TRACKS);
+
+var exportDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, HIDE_NAMES);
+if (exportDoc) {
+  exportPNG(exportDoc, new File(OUT_PATH), true);
+  exportDoc.close(SaveOptions.DONOTSAVECHANGES);
+}
+JSXEOF
+  else
+    cat > "$EXPORT_BG_JSX" << JSXEOF
 ${JSX_HELPERS}
 var PSB_PATH      = "$(esc "$TRACKS_PSB_PATH")";
 var LAYER_TRACKS  = "$(esc "$LAYER_TRACKS")";
@@ -320,18 +375,19 @@ var OUT_PATH      = "$(esc "${VIDEOS_DIR}/bg${n}.png")";
 
 setTrackText(PSB_PATH, LAYER_TRACKS, TRACK_TEXT, JUST_TRACKS);
 
-var exportDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, LAYER_MARK);
+var exportDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, [LAYER_MARK]);
 if (exportDoc) {
   exportPNG(exportDoc, new File(OUT_PATH), false);
   exportDoc.close(SaveOptions.DONOTSAVECHANGES);
 }
 JSXEOF
+  fi
 
   run_jsx "$EXPORT_BG_JSX"
 done
 
 # ── STAGE 3: restore the archived PSB to the full track list, export mark.png  ─
-#             from the mark PSB ───────────────────────────────────────────────
+#             (and, for Horizons, the flat sky.png background) ────────────────
 FULL_TRACK_TEXT=""
 for t in "${tracks[@]}"; do
   if [[ -n "$FULL_TRACK_TEXT" ]]; then FULL_TRACK_TEXT="${FULL_TRACK_TEXT}\\r"; fi
@@ -339,7 +395,43 @@ for t in "${tracks[@]}"; do
 done
 
 FINISH_JSX="/tmp/meanwhile-video-finish-${CAT_NUMBER}.jsx"
-cat > "$FINISH_JSX" << JSXEOF
+
+if [[ "$LABEL_KEY" == "MWH" ]]; then
+  cat > "$FINISH_JSX" << JSXEOF
+${JSX_HELPERS}
+var PSB_PATH     = "$(esc "$TRACKS_PSB_PATH")";
+var LAYER_TRACKS = "$(esc "$LAYER_TRACKS")";
+var JUST_TRACKS  = "$(esc "$JUST_TRACKS")";
+var FULL_TEXT    = "${FULL_TRACK_TEXT}";
+var MARK_PSB     = "$(esc "$MARK_PSB_PATH")";
+var MARK_OUT     = "$(esc "${VIDEOS_DIR}/mark.png")";
+var TIF_PATH     = "$(esc "$TIF_PATH")";
+var ARTBOARD_NAME= "$(esc "$ARTBOARD_NAME")";
+var HIDE_NAMES   = $(jsArray "${HIDE_FOR_SKY[@]}");
+var SKY_OUT      = "$(esc "${VIDEOS_DIR}/sky.png")";
+
+setTrackText(PSB_PATH, LAYER_TRACKS, FULL_TEXT, JUST_TRACKS);
+
+// mark.png — from the mark PSB with transparency
+var markDoc = open(new File(MARK_PSB));
+for (var m = 0; m < markDoc.layers.length; m++) {
+  var ml = markDoc.layers[m];
+  if (ml.isBackgroundLayer || ml.name.toLowerCase() === "background") {
+    try { ml.visible = false; } catch (e) {}
+  }
+}
+exportPNG(markDoc, new File(MARK_OUT), true);
+markDoc.close(SaveOptions.DONOTSAVECHANGES);
+
+// sky.png — flat background only, isolated from the master file
+var skyDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, HIDE_NAMES);
+if (skyDoc) {
+  exportPNG(skyDoc, new File(SKY_OUT), true);
+  skyDoc.close(SaveOptions.DONOTSAVECHANGES);
+}
+JSXEOF
+else
+  cat > "$FINISH_JSX" << JSXEOF
 ${JSX_HELPERS}
 var PSB_PATH     = "$(esc "$TRACKS_PSB_PATH")";
 var LAYER_TRACKS = "$(esc "$LAYER_TRACKS")";
@@ -361,8 +453,9 @@ for (var m = 0; m < markDoc.layers.length; m++) {
 exportPNG(markDoc, new File(OUT_PATH), true);
 markDoc.close(SaveOptions.DONOTSAVECHANGES);
 JSXEOF
+fi
 
-print -P "  %F{cyan}Restoring track list + exporting mark.png...%f"
+print -P "  %F{cyan}Restoring track list + exporting mark.png$( [[ "$LABEL_KEY" == "MWH" ]] && echo " + sky.png")...%f"
 run_jsx "$FINISH_JSX"
 
 # ── COPY STATIC LOGO (if available in template folder) ────────────────────────
@@ -374,10 +467,18 @@ fi
 # ── REPORT ────────────────────────────────────────────────────────────────────
 print ""
 EXPECTED=()
-for (( n = 1; n <= ${#tracks[@]}; n++ )); do
-  EXPECTED+=("${VIDEOS_DIR}/bg${n}.png")
-done
-EXPECTED+=("${VIDEOS_DIR}/mark.png")
+if [[ "$LABEL_KEY" == "MWH" ]]; then
+  for (( n = 1; n <= ${#tracks[@]}; n++ )); do
+    EXPECTED+=("${VIDEOS_DIR}/titles${n}.png")
+  done
+  EXPECTED+=("${VIDEOS_DIR}/sky.png")
+  EXPECTED+=("${VIDEOS_DIR}/mark.png")
+else
+  for (( n = 1; n <= ${#tracks[@]}; n++ )); do
+    EXPECTED+=("${VIDEOS_DIR}/bg${n}.png")
+  done
+  EXPECTED+=("${VIDEOS_DIR}/mark.png")
+fi
 
 FOUND=0
 for f in "${EXPECTED[@]}"; do
