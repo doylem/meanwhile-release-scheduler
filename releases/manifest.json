@@ -25,5 +25,14 @@
     "catalogueNumber": "MWH025",
     "releaseDateISO": "2026-08-21",
     "scheduledAt": "2026-08-14T14:14:47.389Z"
+  },
+  {
+    "releaseId": "mw092-7e0f599579bc",
+    "label": "meanwhile-recordings",
+    "artist": "Juan Deminicis, Casnik",
+    "releaseTitle": "Inner glow / Phasebreaker",
+    "catalogueNumber": "MW092",
+    "releaseDateISO": "2026-08-28",
+    "scheduledAt": "2026-08-14T14:17:18.936Z"
   }
 ]
