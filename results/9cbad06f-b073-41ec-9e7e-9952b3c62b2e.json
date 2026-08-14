@@ -1,0 +1,35 @@
+{
+  "requestId": "9cbad06f-b073-41ec-9e7e-9952b3c62b2e",
+  "completedAt": "2026-08-14T12:33:02.888Z",
+  "ok": true,
+  "catalogueNumber": "MWH026",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Horizons/MWH026 - Test",
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": false,
+      "fileCount": 0
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {}
+}
