@@ -42,17 +42,31 @@ configure_label() {
       ;;
 
     MWH)
-      # ── Complete this block after the one-time Horizons template setup ──
       LABEL_NAME="Meanwhile Horizons"
-      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"  # <- update
+      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"
       RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
-      TEMPLATE_TIF="MWH-Template.tif"                                     # <- update
-      MARK_PSB=""                                                          # <- update
-      PSB_FILES=()                                                         # <- add PSB filenames
-      PSB_ARTIST=""; LAYER_ARTIST="ARTIST_NAME"
-      PSB_TRACKS=""; LAYER_TRACKS="TRACK NAMES"
-      PSB_CAT="";    LAYER_CAT="RELEASE_CATALOGUE"
-      SMART_OBJECTS_JS='[]'                                                # <- add Smart Object mapping
+      TEMPLATE_TIF="MWH-Template.psd"
+      MARK_PSB="MWH - mark.psb"
+      PSB_FILES=(
+        "MWH - Artist name.psb"
+        "MWH - track names.psb"
+        "MWH - Catalogue.psb"
+        "MWH - mark.psb"
+        "MWH - background.psb"
+      )
+      # Unlike MW, Horizons keeps catalogue as its own layer/PSB (no combined
+      # "logo and cat" layer) and right-justifies the track list, which sits
+      # top-right rather than top-left.
+      PSB_ARTIST="MWH - Artist name.psb"; LAYER_ARTIST="ARTIST_NAME";      JUST_ARTIST="LEFT"
+      PSB_TRACKS="MWH - track names.psb"; LAYER_TRACKS="TRACK_NAMES";      JUST_TRACKS="RIGHT"
+      PSB_CAT="MWH - Catalogue.psb";      LAYER_CAT="RELEASE_CATALOGUE";   JUST_CAT="LEFT"
+      SMART_OBJECTS_JS='[
+        {layerName:"ARTIST",     psbFile:"MWH - Artist name.psb"},
+        {layerName:"CATALOGUE",  psbFile:"MWH - Catalogue.psb"},
+        {layerName:"TRACKS",     psbFile:"MWH - track names.psb"},
+        {layerName:"Behind",     psbFile:"MWH - mark.psb"},
+        {layerName:"Background", psbFile:"MWH - background.psb"}
+      ]'
       ;;
 
   esac
@@ -134,7 +148,8 @@ fi
 # ── RESOLVE RELEASE FOLDER ────────────────────────────────────────────────────
 # Search for an existing folder matching {CAT_NUMBER}* first.
 # Use it if found; fall back to creating {CAT} - {ARTIST} - {TITLE}.
-TIF_NAME="${CAT_NUMBER} - Release Assets.tif"
+# Extension follows the label's own master file (MW: .tif, MWH: .psd).
+TIF_NAME="${CAT_NUMBER} - Release Assets.${TEMPLATE_TIF##*.}"
 
 EXISTING=("${RELEASES_DIR}"/${CAT_NUMBER}*(N/))
 
@@ -232,6 +247,7 @@ var LAYER_ARTIST = "$(esc "$LAYER_ARTIST")"; var JUST_ARTIST = "$(esc "$JUST_ART
 var LAYER_TRACKS = "$(esc "$LAYER_TRACKS")"; var JUST_TRACKS = "$(esc "$JUST_TRACKS")";
 var LAYER_CAT    = "$(esc "$LAYER_CAT")";    var JUST_CAT    = "$(esc "$JUST_CAT")";
 var MARK_PSB     = "$(esc "$MARK_PSB")";
+var TIF_NAME     = "$(esc "$TIF_NAME")";
 
 // Strategy: update PSBs in the template folder (where the TIF's links point),
 // copy updated PSBs to the release folder as an archive, then open the template
@@ -248,8 +264,8 @@ function main() {
   copyFile(TEMPLATE_DIR + "/" + PSB_TRACKS, ASSETS_DIR + "/" + PSB_TRACKS);
   copyFile(TEMPLATE_DIR + "/" + PSB_CAT,    ASSETS_DIR + "/" + PSB_CAT);
 
-  // 3. Open the release TIF — System Events will trigger Update All Modified Content after this returns
-  open(new File(ASSETS_DIR + "/" + CAT_NUMBER + " - Release Assets.tif"));
+  // 3. Open the release master file — System Events will trigger Update All Modified Content after this returns
+  open(new File(ASSETS_DIR + "/" + TIF_NAME));
 }
 
 function copyFile(srcPath, dstPath) {
