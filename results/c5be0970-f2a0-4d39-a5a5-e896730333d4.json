@@ -1,0 +1,41 @@
+{
+  "requestId": "c5be0970-f2a0-4d39-a5a5-e896730333d4",
+  "completedAt": "2026-08-14T14:13:51.696Z",
+  "ok": true,
+  "catalogueNumber": "MWH025",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Horizons/MWH025 - Savvas EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 5
+    },
+    "videos": {
+      "found": true,
+      "fileCount": 3
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 6
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/ububpqbdtg9katesbvb3m/MWH-Release-Cover-Square.jpg?rlkey=cqb65d5za47tk0etz139w6pn1&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/l60gdlm6v6echim6f3t0h/APM1V_ez4MEckqcXrTwdblM?rlkey=k5y9s1nb7tz4ev2cjcak4vbhh&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/k8res2udhu0vibd8ygnuo/AACm1B80ZchKd2RmBQk2P_0?rlkey=i93qgvm9f8kn85aunoz576rvg&dl=0",
+    "videos": "https://www.dropbox.com/scl/fo/lvovr0nib5u0dlf6ayufm/AJ7DaaJXISt3cPMiVi5OJKc?rlkey=vspq3l7phem1i7ouo22u6j4ij&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/5qnfwxaprcofpr5bb6p5p/AGHdkKBSba_jPGmgdZx1V4U?rlkey=zk7xfujgx59rjdw4kgor1txqr&dl=0"
+  }
+}
