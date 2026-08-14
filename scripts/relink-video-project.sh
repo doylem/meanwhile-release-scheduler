@@ -32,6 +32,17 @@
 # neither contains the old release's folder name. A .wfp that already points at this
 # release (e.g. re-running the chained export) is detected and skipped cleanly.
 #
+# After the substring replace, every text entry is re-scanned for any remaining
+# "<folder>/assets/videos/" reference that isn't THIS release's folder. proj_zip_save_path
+# is only ever the source of the old folder/stem to search-and-replace — it is not a
+# guarantee that every media entry actually lived there. A .wfp that was hand-edited, or
+# copied from a "template" whose media was never truly relinked, can have proj_zip_save_path
+# say one thing while its media.json/timeline.wesproj entries still point somewhere else
+# entirely (this happened for real: MWxxx_promo_video_square.wfp claimed to be the
+# template, but its media still pointed at MW090's actual release folder). Rather than
+# silently shipping a project that "looks" relinked but still plays back the wrong
+# artwork, any such leftover reference fails that .wfp loudly and leaves it untouched.
+#
 # Also fixes one known stale path while it's in there: the spotify-canvas template's
 # spotify-bg.png reference points at a "spotify/" subfolder that hasn't existed since
 # the template was created — the file has always lived directly in assets/videos/.
@@ -163,7 +174,7 @@ for WFP_PATH in "${WFP_FILES[@]}"; do
 
   # ── COMPUTE OLD/NEW FOLDER + STEM, REWRITE TEXT FILES ─────────────────────
   python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" << 'PYEOF'
-import json, os, sys, glob
+import json, os, re, sys, glob
 
 work_dir, project_info_path, new_folder_basename, cat_number = sys.argv[1:5]
 
@@ -197,14 +208,13 @@ if "_" in old_stem:
 else:
     new_stem = cat_number + "_promo_video"
 
-if old_folder_basename == new_folder_basename:
-    print("  NOFIX: already points at this release (%s)" % old_folder_basename)
-    sys.exit(0)
+needs_rename = old_folder_basename != new_folder_basename
 
-print("  OLD_FOLDER=" + old_release_folder)
-print("  NEW_FOLDER=" + new_release_folder)
-print("  OLD_STEM=" + old_stem)
-print("  NEW_STEM=" + new_stem)
+if needs_rename:
+    print("  OLD_FOLDER=" + old_release_folder)
+    print("  NEW_FOLDER=" + new_release_folder)
+    print("  OLD_STEM=" + old_stem)
+    print("  NEW_STEM=" + new_stem)
 
 # Known stale path in the spotify-canvas template: spotify-bg.png was originally
 # imported from a "spotify/" subfolder that no longer exists — the file has always
@@ -215,12 +225,13 @@ fixed_marker = "/assets/videos/spotify-bg.png"
 
 # Only rewrite text-based entries; leave binary thumbnails untouched.
 text_exts = (".json", ".wesproj")
+text_files = [
+    p for p in glob.glob(os.path.join(work_dir, "**", "*"), recursive=True)
+    if os.path.isfile(p) and p.lower().endswith(text_exts)
+]
+
 changed = []
-for path in glob.glob(os.path.join(work_dir, "**", "*"), recursive=True):
-    if not os.path.isfile(path):
-        continue
-    if not path.lower().endswith(text_exts):
-        continue
+for path in text_files:
     with open(path, "r", encoding="utf-8", errors="strict") as f:
         content = f.read()
     new_content = (
@@ -233,13 +244,58 @@ for path in glob.glob(os.path.join(work_dir, "**", "*"), recursive=True):
             f.write(new_content)
         changed.append(os.path.relpath(path, work_dir))
 
-print("  CHANGED_COUNT=%d" % len(changed))
-for c in changed:
-    print("  CHANGED: " + c)
+if needs_rename:
+    print("  CHANGED_COUNT=%d" % len(changed))
+    for c in changed:
+        print("  CHANGED: " + c)
+
+# ── VERIFY: no reference to a DIFFERENT release folder survived the rewrite ──
+# Each media entry embeds its own absolute "<release folder>/assets/videos/..."
+# path independently of proj_zip_save_path. If a .wfp was ever hand-edited, or
+# built from a copy whose media was never actually relinked (e.g. a "template"
+# that's secretly a renamed old release), the substring replace above only
+# touches text matching THIS project's own old_release_folder and silently
+# leaves any other release's folder name untouched — producing a project that
+# LOOKS relinked (project_info.json points at the new release) but still plays
+# back media from wherever it actually came from. Catch that here instead of
+# quietly shipping a half-fixed .wfp.
+stale_pattern = re.compile(r'([^"/]+)/assets/videos/')
+stale = {}
+for path in text_files:
+    with open(path, "r", encoding="utf-8", errors="strict") as f:
+        content = f.read()
+    for m in stale_pattern.finditer(content):
+        folder_name = m.group(1)
+        if folder_name != new_folder_basename:
+            stale.setdefault(folder_name, set()).add(os.path.relpath(path, work_dir))
+
+if stale:
+    print("  STALE REFERENCES — media still points at a different release than proj_zip_save_path claims:")
+    for folder_name in sorted(stale):
+        print("    " + folder_name)
+        for p in sorted(stale[folder_name]):
+            print("      in " + p)
+    with open(os.path.join(work_dir, ".relink_stale"), "w") as f:
+        json.dump({k: sorted(v) for k, v in stale.items()}, f)
+    sys.exit(0)  # do not write .relink_result — refuse to ship a partial fix
+
+if not needs_rename:
+    print("  NOFIX: already points at this release (%s)" % old_folder_basename)
+    sys.exit(0)
 
 with open(os.path.join(work_dir, ".relink_result"), "w") as f:
     json.dump({"new_stem": new_stem, "old_stem": old_stem}, f)
 PYEOF
+
+  if [[ -f "$WORK_DIR/.relink_stale" ]]; then
+    print -P "  %F{red}Refusing to relink — this project's media points at a different release than%f"
+    print -P "  %F{red}its own saved-path metadata claims (see STALE REFERENCES above).%f"
+    print -P "  %F{white}Fix it by hand in Filmora (relink the offending media), or patch the archive%f"
+    print -P "  %F{white}text directly, then re-run.%f"
+    print ""
+    (( FAILED_COUNT++ ))
+    continue
+  fi
 
   if [[ ! -f "$WORK_DIR/.relink_result" ]]; then
     print -P "  %F{yellow}Nothing to relink — already points at this release, or its format was unrecognised.%f"

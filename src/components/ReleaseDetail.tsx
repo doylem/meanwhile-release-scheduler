@@ -50,7 +50,7 @@ const CATEGORY_LABELS: Record<DropboxAssetCategory, string> = {
   remixPacks: 'Remix packs',
 };
 
-type SectionKey = 'dropbox' | 'calendar' | 'email' | 'artwork' | 'move';
+type SectionKey = 'dropbox' | 'calendar' | 'email' | 'artwork' | 'videoAssets' | 'move';
 
 export function ReleaseDetail({
   release,
@@ -486,9 +486,24 @@ export function ReleaseDetail({
         <ArtworkCommand release={release} labelShortCode={label.shortCode} />
       </CollapsibleSection>
 
-      {/* Move release date (optional) */}
+      {/* Generate video assets */}
       <CollapsibleSection
         number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 2}
+        title="Generate video assets"
+        subtitle="Run in terminal"
+        open={openSection === 'videoAssets'}
+        onToggle={() => toggle('videoAssets')}
+      >
+        <p className="text-xs font-mono text-muted">
+          Once the artwork is finished, copy this command into your terminal to export the promo
+          video PNGs and relink the Filmora projects.
+        </p>
+        <VideoAssetsCommand release={release} labelShortCode={label.shortCode} />
+      </CollapsibleSection>
+
+      {/* Move release date (optional) */}
+      <CollapsibleSection
+        number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 3}
         title="Move release date"
         subtitle="Optional"
         done={move.result?.ok}
@@ -762,6 +777,40 @@ function ArtworkCommand({ release, labelShortCode }: { release: Release; labelSh
     `"${esc(release.releaseTitle)}"`,
     ...release.tracks.map((t) => `"${esc(t.title)}"`),
   ].join(' ');
+
+  const [value, setValue] = useState(cmd);
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard.writeText(value).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="space-y-2">
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={3}
+        className="w-full rounded-lg bg-elevated/60 border border-wire/20 px-4 py-3 text-xs font-mono text-snow/80 resize-y focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/15 transition-colors"
+        spellCheck={false}
+      />
+      <div className="flex justify-end">
+        <button
+          onClick={copy}
+          className="text-xs font-mono text-cyan hover:text-cyan/70 transition-colors"
+        >
+          {copied ? '✓ copied' : 'copy command'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VideoAssetsCommand({ release, labelShortCode }: { release: Release; labelShortCode: string }) {
+  const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const cmd = ['./scripts/export-video-assets.sh', labelShortCode, `"${esc(release.catalogueNumber)}"`].join(' ');
 
   const [value, setValue] = useState(cmd);
   const [copied, setCopied] = useState(false);
