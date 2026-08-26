@@ -1,0 +1,24 @@
+{
+  "id": "2b16f17f-7887-4155-b2db-8567944ccd3e",
+  "savedAt": "2026-08-26T21:39:39.309Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW093",
+    "artist": "Tonaco",
+    "releaseTitle": "Howler",
+    "tracks": [
+      {
+        "title": "Howler "
+      },
+      {
+        "title": "Sen"
+      }
+    ],
+    "releaseDateISO": "",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
