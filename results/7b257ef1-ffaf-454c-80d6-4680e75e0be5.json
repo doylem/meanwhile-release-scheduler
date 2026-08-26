@@ -1,0 +1,38 @@
+{
+  "requestId": "7b257ef1-ffaf-454c-80d6-4680e75e0be5",
+  "completedAt": "2026-08-26T21:51:11.077Z",
+  "ok": true,
+  "catalogueNumber": "MW093",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW093 - Tonaco EP 2",
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 5
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "assets": "https://www.dropbox.com/scl/fo/mxi2gzd36mdcfv9ed2lf7/ANEq3eTKmbV8EdNTPTGRrnU?rlkey=7qbaco6n2pyvh77ztblxtftfk&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/agkvfymjyj005sh2blcqs/AJDaH9HGE-dpMNpa1VGRkHg?rlkey=lforil9lu4qj14orbi1uwgq9o&dl=0"
+  }
+}
