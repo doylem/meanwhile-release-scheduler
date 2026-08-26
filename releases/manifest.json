@@ -34,5 +34,14 @@
     "catalogueNumber": "MW092",
     "releaseDateISO": "2026-08-28",
     "scheduledAt": "2026-08-14T14:17:18.936Z"
+  },
+  {
+    "releaseId": "mw093-eab1aa525027",
+    "label": "meanwhile-recordings",
+    "artist": "Tonaco",
+    "releaseTitle": "Howler",
+    "catalogueNumber": "MW093",
+    "releaseDateISO": "2026-09-18",
+    "scheduledAt": "2026-08-26T21:50:13.239Z"
   }
 ]
