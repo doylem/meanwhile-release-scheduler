@@ -1,7 +1,7 @@
 {
   "catalogueNumber": "MW093",
   "dropbox": {
-    "checkedAt": "2026-08-28T01:23:53.556Z",
+    "checkedAt": "2026-08-29T04:19:48.721Z",
     "folderFound": true
   },
   "calendar": {
@@ -15,5 +15,6 @@
     "prepare-masters",
     "artwork-ideation",
     "artwork-due"
-  ]
+  ],
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/7m2umrttzzq3dfba92vrb/Meanwhile-Release-Cover.jpg?rlkey=itr9lzhe9nvlxywpu8x1ftuqc&raw=1"
 }

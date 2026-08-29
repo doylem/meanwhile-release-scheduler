@@ -1,0 +1,41 @@
+{
+  "requestId": "be2fd5ef-863e-47c0-b8b3-34bcb3f43f14",
+  "completedAt": "2026-08-29T04:19:48.721Z",
+  "ok": true,
+  "catalogueNumber": "MW093",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW093 - Tonaco EP 2",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 6
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 6
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/7m2umrttzzq3dfba92vrb/Meanwhile-Release-Cover.jpg?rlkey=itr9lzhe9nvlxywpu8x1ftuqc&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/kuo7av813wkiynmxnaddk/AHHmdNLlUger06hImrngp8Y?rlkey=dsm3d17fmc7oajf5p52j0itlf&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/7oq97u3txeuxr53w9ecvf/AIjhJYRj-zJl4071QwxJzpQ?rlkey=6lrr7u9zdqdjbzlm22lhqeg0a&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/mxi2gzd36mdcfv9ed2lf7/ANEq3eTKmbV8EdNTPTGRrnU?rlkey=7qbaco6n2pyvh77ztblxtftfk&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/agkvfymjyj005sh2blcqs/AJDaH9HGE-dpMNpa1VGRkHg?rlkey=lforil9lu4qj14orbi1uwgq9o&dl=0"
+  }
+}
