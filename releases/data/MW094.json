@@ -1,0 +1,21 @@
+{
+  "id": "56c62a57-d1fc-4311-b6af-67fac7282a06",
+  "savedAt": "2026-09-03T06:50:59.297Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW094",
+    "artist": "Various Artists",
+    "releaseTitle": "Meanwhile Excursions Vol 6",
+    "tracks": [
+      {
+        "title": ""
+      }
+    ],
+    "releaseDateISO": "2026-10-09",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
