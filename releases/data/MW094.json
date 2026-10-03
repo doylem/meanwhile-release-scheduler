@@ -1,6 +1,6 @@
 {
   "id": "56c62a57-d1fc-4311-b6af-67fac7282a06",
-  "savedAt": "2026-10-03T00:11:23.611Z",
+  "savedAt": "2026-10-03T00:13:57.824Z",
   "input": {
     "label": "meanwhile-recordings",
     "catalogueNumber": "MW094",
@@ -10,6 +10,38 @@
       {
         "title": "Quintessence",
         "artist": "GMJ"
+      },
+      {
+        "title": "Altered State",
+        "artist": "Julieta Kühnle"
+      },
+      {
+        "title": "Something About You",
+        "artist": "Kebin Van Reeken"
+      },
+      {
+        "title": "Land of Sun",
+        "artist": "Matter"
+      },
+      {
+        "title": "Maniac",
+        "artist": "Ric Niels"
+      },
+      {
+        "title": "Leaves",
+        "artist": "Sam Scheme"
+      },
+      {
+        "title": "Echo Temple",
+        "artist": "Abity, Luca Abayan"
+      },
+      {
+        "title": "Tremor",
+        "artist": "Mango, Kenan Savrun"
+      },
+      {
+        "title": "Space in Flux",
+        "artist": "RYAN (CU), ODAX"
       }
     ],
     "releaseDateISO": "2026-10-09",
