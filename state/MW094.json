@@ -3,5 +3,8 @@
   "calendar": {
     "scheduledAt": "2026-09-03T06:52:17.400Z",
     "eventCount": 10
-  }
+  },
+  "completedTasks": [
+    "prepare-masters"
+  ]
 }
