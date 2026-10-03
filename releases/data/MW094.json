@@ -1,6 +1,6 @@
 {
   "id": "56c62a57-d1fc-4311-b6af-67fac7282a06",
-  "savedAt": "2026-09-20T04:17:55.578Z",
+  "savedAt": "2026-10-03T00:11:23.611Z",
   "input": {
     "label": "meanwhile-recordings",
     "catalogueNumber": "MW094",
@@ -8,7 +8,8 @@
     "releaseTitle": "Meanwhile Excursions Vol 6",
     "tracks": [
       {
-        "title": ""
+        "title": "Quintessence",
+        "artist": "GMJ"
       }
     ],
     "releaseDateISO": "2026-10-09",
