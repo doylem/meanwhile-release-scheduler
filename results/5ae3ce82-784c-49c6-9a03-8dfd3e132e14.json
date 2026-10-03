@@ -1,0 +1,41 @@
+{
+  "requestId": "5ae3ce82-784c-49c6-9a03-8dfd3e132e14",
+  "completedAt": "2026-10-03T00:14:37.296Z",
+  "ok": true,
+  "catalogueNumber": "MW094",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW094 - VA: Meanwhile Excursion Vol 6",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 9
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 7
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 7
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 9
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/0hdvhl52kzkwgn9ysvfvm/Meanwhile-Release-Cover-4-x-5.jpg?rlkey=hflzlcs4rtoek2qmes28zo1mm&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/xcvh57ktjrwdji0mtkkhr/AOD8oP0LgZfgYvnR2RNQG7w?rlkey=fx656jkt1hixe1klegg9qgewv&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/4a44c4vo5fbtnba7tknw0/ANeVSC62kn59Qxr5EScOtJ8?rlkey=2kv51o4y1x0t7bwsnqqk79jf7&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/p58qpmv55eswt13suxfme/AHsa0jNMp5Lnd2AOaaFtbuE?rlkey=bmxinh5pepblwf49i0jb9i0o2&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/sbdi74bjgcpmerpqq0xus/ACuG83zCUO2jzQgOykaBWiw?rlkey=fu66k4krs4gk3ntbfh9j05nzj&dl=0"
+  }
+}
