@@ -90,8 +90,45 @@ Photoshop involved:
   `spotify-bg.png` reference points at a `spotify/` subfolder that hasn't existed since
   the template was created — the file has always lived directly in `assets/videos/`.
   A no-op for any `.wfp` that doesn't reference that path (i.e. the square promo).
+- Likewise repoints any `meanwhile_RGB_logo_2023-no-border.png` reference that doesn't
+  resolve on disk at this release's own `assets/videos/` copy. The shared logo moved out
+  of `Assets/Logo/FINAL/meanwhile®LOGO/2023/`, so every template's logo was offline, and
+  the Excursions template's logo clip pointed at a long-gone copy in MW068's folder
+  (which also tripped the stale-reference check). References that resolve are untouched.
 - Usage: `./scripts/relink-video-project.sh` (interactive) or
   `./scripts/relink-video-project.sh MW MW091`.
+
+**`scripts/make-compilation-videos.sh`** — One promo video project per track for
+compilations (MW's "Meanwhile Excursions", usually 6/8/10 tracks, each by a different
+artist). These don't use `bg{n}.png`: there's one 9:16 template project
+(`*_excursions_promo_vid.wfp`, e.g. `MW078_excursions_promo_vid.wfp`) built from shared
+stills (`mark.png`, `title-cat-story.png`, logo), one sample mp3, and two Filmora text
+clips — **video track 7 = track name, video track 8 = artist name**. Pure file
+manipulation, no Photoshop:
+- Copy the previous compilation's template `.wfp` into `assets/videos/`, then run. It
+  chains into `relink-video-project.sh` first, then writes
+  `{CAT}_excursions_promo_vid_{nn}.wfp` per track: both texts swapped (upper-cased, as
+  the template is), the audio clip pointed at `MW vid promo TRACK {n}.mp3`, and a new
+  project name/save path/GUID (the GUID keys Filmora's local backup folder).
+- Tracklist: CLI args (`"Artist - Title"`, split on the first ` - `), else
+  `assets/videos/tracklist.txt` (same format, one per line), else prompts and saves to
+  `tracklist.txt`.
+- Text clips aren't on the main timeline directly — video tracks 7/8 hold compound clips
+  whose nested timeline (by `timelineId`) holds the text clip. The text is in its
+  `scriptBuf`, a JSON document stored as a string, duplicated in `Text` and
+  `TextData[].CharData`; `scriptBufSize` = UTF-8 byte length + 1 and must be kept in
+  sync. `timeline.wesproj` and `scriptBuf` are compact JSON that round-trip byte-for-byte
+  through Python's `json`, so they're edited structurally.
+- The audio path lives in three places that must agree: the clip's `filename`, the
+  `resources` entry with the same `sourceUuid`, and the media-bin entry the clip is
+  mapped to (`extra.json`) in `medias_info.json` + its `media.json`. If the bin entry is
+  left alone, the next relink's prune drops it as unused.
+- Warns about referenced media not on disk yet (typically the mp3 samples and this
+  volume's `title-cat-story.png`, which is still made by hand). Idempotent: re-running
+  regenerates the per-track projects; relink skips them all as already up to date.
+- Usage: `./scripts/make-compilation-videos.sh` (interactive),
+  `./scripts/make-compilation-videos.sh MW MW094` (reads `tracklist.txt`), or
+  `./scripts/make-compilation-videos.sh MW MW094 "Artist - Title" ...`.
 
 **Label config** lives at the top of each shell script (`configure_label()` function) —
 MW is fully configured, MWH has placeholder stubs.

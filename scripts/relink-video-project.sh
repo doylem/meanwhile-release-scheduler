@@ -46,7 +46,11 @@
 # Also fixes one known stale path while it's in there: the spotify-canvas template's
 # spotify-bg.png reference points at a "spotify/" subfolder that hasn't existed since
 # the template was created — the file has always lived directly in assets/videos/.
-# A no-op for any .wfp that doesn't reference that path.
+# A no-op for any .wfp that doesn't reference that path. Likewise any reference to
+# meanwhile_RGB_logo_2023-no-border.png that no longer resolves on disk (the shared logo
+# moved out of Assets/Logo/FINAL/..., and the Excursions compilation template points at
+# a long-gone copy inside MW068's folder) is repointed at this release's own
+# assets/videos/ copy.
 #
 # Finally, prunes any media entry that's both missing on disk and not referenced
 # anywhere in the project — the usual cause is a naming convention that changed
@@ -231,6 +235,25 @@ if needs_rename:
 stale_marker = "/assets/videos/spotify/spotify-bg.png"
 fixed_marker = "/assets/videos/spotify-bg.png"
 
+# Known stale logo paths: the compilation (Excursions) template's logo clip points at
+# a copy inside an unrelated, older release's folder (MW068's "assets/videos/filmora
+# project file alex/"), and the shared logo itself has since moved out of
+# "Assets/Logo/FINAL/meanwhile®LOGO/2023/" — both are gone. Every release gets its own
+# copy directly in assets/videos/ (export-video-assets.sh copies it there), so any
+# logo reference that doesn't resolve on disk is repointed at this release's copy.
+# References that do resolve are left alone.
+logo_name = "meanwhile_RGB_logo_2023-no-border.png"
+logo_pattern = re.compile(r'(?:file:/)?/[^"]*/' + re.escape(logo_name))
+new_logo_path = "/" + new_release_folder + "/assets/videos/" + logo_name
+def fix_logo(content):
+    def repl(m):
+        path = m.group(0)
+        prefix = "file:/" if path.startswith("file:/") else ""
+        if os.path.isfile("/" + path[len(prefix):].lstrip("/")):
+            return path
+        return prefix + new_logo_path
+    return logo_pattern.sub(repl, content)
+
 # Only rewrite text-based entries; leave binary thumbnails untouched.
 text_exts = (".json", ".wesproj")
 text_files = [
@@ -242,7 +265,7 @@ changed = []
 for path in text_files:
     with open(path, "r", encoding="utf-8", errors="strict") as f:
         content = f.read()
-    new_content = (
+    new_content = fix_logo(
         content.replace(old_release_folder, new_release_folder)
         .replace(old_stem, new_stem)
         .replace(stale_marker, fixed_marker)
@@ -251,6 +274,10 @@ for path in text_files:
         with open(path, "w", encoding="utf-8") as f:
             f.write(new_content)
         changed.append(os.path.relpath(path, work_dir))
+
+# A stale-path fix alone (no folder rename) still needs the archive rebuilt.
+if changed and not needs_rename:
+    print("  FIXED_STALE_PATHS=%d" % len(changed))
 
 if needs_rename:
     print("  CHANGED_COUNT=%d" % len(changed))
@@ -342,7 +369,7 @@ if os.path.isfile(medias_info_path):
         for media_id, name, path in pruned:
             print("    PRUNED: " + name + " (" + media_id + ") -> " + path)
 
-if not needs_rename and not pruned:
+if not needs_rename and not pruned and not changed:
     print("  NOFIX: already points at this release (%s)" % old_folder_basename)
     sys.exit(0)
 

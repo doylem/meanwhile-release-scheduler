@@ -24,7 +24,7 @@ or done for each release.
   split, auth, or the results-branch data model.
 - **[`doc/SHELL_SCRIPTS.md`](SHELL_SCRIPTS.md)** — the macOS Photoshop/Filmora artwork and
   promo-video automation scripts (`new-release.sh`, `export-video-assets.sh`,
-  `relink-video-project.sh`). Separate from the TypeScript GitHub Actions scripts below.
+  `relink-video-project.sh`, `make-compilation-videos.sh`). Separate from the TypeScript GitHub Actions scripts below.
   Read this before touching artwork/video automation.
 
 ## Conventions

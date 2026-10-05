@@ -4,6 +4,7 @@ import { useWorkflowAction, type ActionStatus } from '../lib/useWorkflowAction';
 import { isFriday, nextFriday } from '../lib/scheduling';
 import { useSettings } from '../lib/useSettings';
 import { findLabel } from '../lib/settings';
+import { isCompilation, videoAssetsCommand } from '../lib/videoCommands';
 import type { DropboxAssetCategory, DropboxAssetStatus, Release, ReleaseState } from '../lib/types';
 
 type DuplicateMode = 'cancel' | 'create-missing' | 'recreate-all' | 'update-existing';
@@ -494,10 +495,18 @@ export function ReleaseDetail({
         open={openSection === 'videoAssets'}
         onToggle={() => toggle('videoAssets')}
       >
-        <p className="text-xs font-mono text-muted">
-          Once the artwork is finished, copy this command into your terminal to export the promo
-          video PNGs and relink the Filmora projects.
-        </p>
+        {isCompilation(release) ? (
+          <p className="text-xs font-mono text-muted">
+            Compilation ({release.tracks.length} tracks). Copy the previous compilation&apos;s
+            <span className="text-snow/80"> *_excursions_promo_vid.wfp</span> into assets/videos/, then run
+            this command to create one Filmora project per track with the artist and track name filled in.
+          </p>
+        ) : (
+          <p className="text-xs font-mono text-muted">
+            Once the artwork is finished, copy this command into your terminal to export the promo
+            video PNGs and relink the Filmora projects.
+          </p>
+        )}
         <VideoAssetsCommand release={release} labelShortCode={label.shortCode} />
       </CollapsibleSection>
 
@@ -809,8 +818,8 @@ function ArtworkCommand({ release, labelShortCode }: { release: Release; labelSh
 }
 
 function VideoAssetsCommand({ release, labelShortCode }: { release: Release; labelShortCode: string }) {
-  const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const cmd = ['./scripts/export-video-assets.sh', labelShortCode, `"${esc(release.catalogueNumber)}"`].join(' ');
+  const cmd = videoAssetsCommand(release, labelShortCode);
+  const rows = isCompilation(release) ? Math.min(release.tracks.length + 1, 10) : 3;
 
   const [value, setValue] = useState(cmd);
   const [copied, setCopied] = useState(false);
@@ -826,7 +835,7 @@ function VideoAssetsCommand({ release, labelShortCode }: { release: Release; lab
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        rows={3}
+        rows={rows}
         className="w-full rounded-lg bg-elevated/60 border border-wire/20 px-4 py-3 text-xs font-mono text-snow/80 resize-y focus:outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/15 transition-colors"
         spellCheck={false}
       />
