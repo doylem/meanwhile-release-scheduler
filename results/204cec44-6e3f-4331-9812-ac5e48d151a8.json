@@ -1,0 +1,38 @@
+{
+  "requestId": "204cec44-6e3f-4331-9812-ac5e48d151a8",
+  "completedAt": "2026-10-12T11:56:32.979Z",
+  "ok": true,
+  "catalogueNumber": "MW095",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW095 - GMJ & Matter - Northern Line_Shinto",
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 5
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "assets": "https://www.dropbox.com/scl/fo/tx2q2f4fxmsiw6bo3vrks/ACIOYqMvdJdh7XifBvBzyP4?rlkey=0qnsq55o43ksgbhgqmw2h498g&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/76iqm26ntzruo9rebzsdq/AEEYtb_tYFZDuTbgUSFs0fo?rlkey=45e2ausouqjgzsvu3q1w1665g&dl=0"
+  }
+}

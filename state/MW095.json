@@ -2,5 +2,9 @@
   "catalogueNumber": "MW095",
   "completedTasks": [
     "prepare-masters"
-  ]
+  ],
+  "dropbox": {
+    "checkedAt": "2026-10-12T11:56:32.980Z",
+    "folderFound": true
+  }
 }
