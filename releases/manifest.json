@@ -52,5 +52,14 @@
     "catalogueNumber": "MW094",
     "releaseDateISO": "2026-10-09",
     "scheduledAt": "2026-09-03T06:52:17.400Z"
+  },
+  {
+    "releaseId": "mw095-05e600277646",
+    "label": "meanwhile-recordings",
+    "artist": "GMJ & Matter",
+    "releaseTitle": "Shinto / Northern Line",
+    "catalogueNumber": "MW095",
+    "releaseDateISO": "2026-10-30",
+    "scheduledAt": "2026-10-12T11:57:17.681Z"
   }
 ]
