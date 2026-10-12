@@ -1,0 +1,60 @@
+{
+  "requestId": "80ad396d-150f-4c98-9579-25a1c14267b0",
+  "completedAt": "2026-10-12T12:04:34.906Z",
+  "ok": true,
+  "releaseId": "mw095-05e600277646",
+  "mode": "recreate-all",
+  "existingEventCountBeforeRun": 10,
+  "events": [
+    {
+      "taskId": "prepare-masters",
+      "eventId": "j8ejg22k19t14q4mlhsqcme5as",
+      "htmlLink": "https://www.google.com/calendar/event?eid=ajhlamcyMmsxOXQxNHE0bWxoc3FjbWU1YXMgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "artwork-ideation",
+      "eventId": "pi62muddk34n5f03qekpgvb8es",
+      "htmlLink": "https://www.google.com/calendar/event?eid=cGk2Mm11ZGRrMzRuNWYwM3Fla3BndmI4ZXMgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "artwork-due",
+      "eventId": "3cfqr62oaqi334dcucdbt7knhs",
+      "htmlLink": "https://www.google.com/calendar/event?eid=M2NmcXI2Mm9hcWkzMzRkY3VjZGJ0N2tuaHMgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "liner-notes-due",
+      "eventId": "7valecclnan1sin652fr9km1h8",
+      "htmlLink": "https://www.google.com/calendar/event?eid=N3ZhbGVjY2xuYW4xc2luNjUyZnI5a20xaDggbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "inflyte-upload",
+      "eventId": "dveul121jtkhui13ho46hr3njc",
+      "htmlLink": "https://www.google.com/calendar/event?eid=ZHZldWwxMjFqdGtodWkxM2hvNDZocjNuamMgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "video-promos-due",
+      "eventId": "nh4pmdla8uqokhvg08vh2nipsc",
+      "htmlLink": "https://www.google.com/calendar/event?eid=bmg0cG1kbGE4dXFva2h2ZzA4dmgybmlwc2MgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "teaser-1",
+      "eventId": "s9d494n73fm5vi02af0lg7iiug",
+      "htmlLink": "https://www.google.com/calendar/event?eid=czlkNDk0bjczZm01dmkwMmFmMGxnN2lpdWcgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "teaser-2",
+      "eventId": "7i9dtnhqf5o6urepq3lm1hrqos",
+      "htmlLink": "https://www.google.com/calendar/event?eid=N2k5ZHRuaHFmNW82dXJlcHEzbG0xaHJxb3MgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "release-announcement",
+      "eventId": "vrg8f2g0ahojt7sm25n4f23ckk",
+      "htmlLink": "https://www.google.com/calendar/event?eid=dnJnOGYyZzBhaG9qdDdzbTI1bjRmMjNja2sgbWVhbndoaWxlcmVjQG0"
+    },
+    {
+      "taskId": "soundcloud-upload",
+      "eventId": "ffl5t8nplqkv4s80d7v703vhhs",
+      "htmlLink": "https://www.google.com/calendar/event?eid=ZmZsNXQ4bnBscWt2NHM4MGQ3djcwM3ZoaHMgbWVhbndoaWxlcmVjQG0"
+    }
+  ]
+}
