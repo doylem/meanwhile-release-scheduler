@@ -8,11 +8,12 @@
     "inflyte-upload"
   ],
   "dropbox": {
-    "checkedAt": "2026-10-13T11:19:36.295Z",
+    "checkedAt": "2026-10-25T14:31:37.436Z",
     "folderFound": true
   },
   "calendar": {
     "scheduledAt": "2026-10-12T12:04:34.906Z",
     "eventCount": 10
-  }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/kbq9j12ozj3dz105q5gm5/Meanwhile-Release-Cover.jpg?rlkey=pdlz4704pgxnvhtr6lotonx7z&raw=1"
 }

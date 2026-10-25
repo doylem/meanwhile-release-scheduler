@@ -1,0 +1,41 @@
+{
+  "requestId": "afce4aa4-d836-4c5a-ab5d-12cb03623fe6",
+  "completedAt": "2026-10-25T14:31:37.436Z",
+  "ok": true,
+  "catalogueNumber": "MW095",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW095 - GMJ & Matter - Northern Line_Shinto",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 6
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 6
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/kbq9j12ozj3dz105q5gm5/Meanwhile-Release-Cover.jpg?rlkey=pdlz4704pgxnvhtr6lotonx7z&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/5b7bk6f375sjgaykepvj9/AJP7iBnckNYyks2efKB6FVY?rlkey=7lov5abtf2sagcdbh2dfyz0hw&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/d89w5rzhb4d5yco671vjg/AH8BEyx69N_M3BR81cB7mWk?rlkey=2w3e2zdjbwu02mjma5skusc3d&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/tx2q2f4fxmsiw6bo3vrks/ACIOYqMvdJdh7XifBvBzyP4?rlkey=0qnsq55o43ksgbhgqmw2h498g&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/76iqm26ntzruo9rebzsdq/AEEYtb_tYFZDuTbgUSFs0fo?rlkey=45e2ausouqjgzsvu3q1w1665g&dl=0"
+  }
+}
