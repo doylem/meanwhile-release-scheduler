@@ -1,0 +1,39 @@
+{
+  "requestId": "0f318e89-ee32-491b-8f07-74766eb4c1da",
+  "completedAt": "2026-10-29T23:37:06.369Z",
+  "ok": true,
+  "catalogueNumber": "MW096",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW096 - Sam Scheme - Ambision_Leaves (Dub)",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 5
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/lxxdxbi1c9bpw12ea64sg/AMafQFBrks6jvoNYSMm7ylQ?rlkey=wraotq1iiwoa2ww0iavofd4ob&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/zcqrbf7w3v7qufnm33e17/AJbYzsoqSOb1VsPTVGK-k38?rlkey=xlq40nmnoku7cjruc4nrzzomv&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/kdy1nhuc405tu6rld1ar4/ABbPg5uRJUFgDa5z8pT8Jng?rlkey=d04e9vo4cq1ml8g0ody0i7fhf&dl=0"
+  }
+}
