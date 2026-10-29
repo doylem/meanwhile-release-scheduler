@@ -1,0 +1,24 @@
+{
+  "id": "2483aa11-2b00-49fe-a140-aad1f0b19f1d",
+  "savedAt": "2026-10-29T23:27:33.467Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW096",
+    "artist": "Sam Scheme",
+    "releaseTitle": "Ambision / Leaves (Dub Mix)",
+    "tracks": [
+      {
+        "title": "Ambision"
+      },
+      {
+        "title": "Leaves (Dub Mix)"
+      }
+    ],
+    "releaseDateISO": "2026-11-20",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
