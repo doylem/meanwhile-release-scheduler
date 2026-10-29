@@ -61,5 +61,14 @@
     "catalogueNumber": "MW095",
     "releaseDateISO": "2026-10-30",
     "scheduledAt": "2026-10-12T12:04:34.906Z"
+  },
+  {
+    "releaseId": "mw096-11d499027e79",
+    "label": "meanwhile-recordings",
+    "artist": "Sam Scheme",
+    "releaseTitle": "Ambision / Leaves (Dub Mix)",
+    "catalogueNumber": "MW096",
+    "releaseDateISO": "2026-11-20",
+    "scheduledAt": "2026-10-29T23:41:14.405Z"
   }
 ]
