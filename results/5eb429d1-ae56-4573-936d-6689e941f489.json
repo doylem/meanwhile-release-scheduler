@@ -1,0 +1,15 @@
+{
+  "requestId": "5eb429d1-ae56-4573-936d-6689e941f489",
+  "completedAt": "2026-10-29T23:31:50.621Z",
+  "ok": true,
+  "dryRun": true,
+  "draft": {
+    "recipient": "meanwhilerec@gmail.com",
+    "subject": "MW096 - Sam Scheme - Ambision / Leaves (Dub Mix)",
+    "body": "Hi James!\n\nOur next release is here, 2 tracks from Sam Scheme.\n\n1. Sam Scheme - Ambision\n2. Sam Scheme - Leaves (Dub Mix)\n\nRelease Date: Friday November 20th\n\nGenre: Progressive House\n\nMASTERS\n\nhttps://www.dropbox.com/scl/fo/lxxdxbi1c9bpw12ea64sg/AMafQFBrks6jvoNYSMm7ylQ?rlkey=wraotq1iiwoa2ww0iavofd4ob&st=25kzqd6j&dl=0\n\nARTWORK - Coming from Matty\n\nAs usual a big thanks for helping us getting this one together!\n\nG&M",
+    "missingAssets": [
+      "masters",
+      "artwork"
+    ]
+  }
+}
