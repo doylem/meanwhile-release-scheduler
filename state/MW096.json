@@ -2,7 +2,8 @@
   "catalogueNumber": "MW096",
   "completedTasks": [
     "prepare-masters",
-    "artwork-ideation"
+    "artwork-ideation",
+    "artwork-due"
   ],
   "dropbox": {
     "checkedAt": "2026-11-04T06:35:20.953Z",
