@@ -1,0 +1,41 @@
+{
+  "requestId": "2356f1b9-d0c1-43c6-b23d-ccd6aaed86ab",
+  "completedAt": "2026-11-05T08:52:35.208Z",
+  "ok": true,
+  "catalogueNumber": "MW096",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW096 - Sam Scheme - Ambision_Leaves (Dub)",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 6
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 6
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 2
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/o9vati7fosb680om8akwp/Meanwhile-Release-Cover.jpg?rlkey=ij4hc97qa02nug1npg2uz4ois&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/lxxdxbi1c9bpw12ea64sg/AMafQFBrks6jvoNYSMm7ylQ?rlkey=wraotq1iiwoa2ww0iavofd4ob&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/lgx91fsmmp06vbar4hqzh/APZ5vkcFsT7glV_J3iZ8qm0?rlkey=e2mhmsjodu7lbu24wvr30fj3v&dl=0",
+    "assets": "https://www.dropbox.com/scl/fo/zcqrbf7w3v7qufnm33e17/AJbYzsoqSOb1VsPTVGK-k38?rlkey=xlq40nmnoku7cjruc4nrzzomv&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/kdy1nhuc405tu6rld1ar4/ABbPg5uRJUFgDa5z8pT8Jng?rlkey=d04e9vo4cq1ml8g0ody0i7fhf&dl=0"
+  }
+}
