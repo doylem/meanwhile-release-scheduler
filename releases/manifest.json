@@ -88,5 +88,14 @@
     "catalogueNumber": "MW097",
     "releaseDateISO": "2026-12-11",
     "scheduledAt": "2026-11-08T06:22:19.165Z"
+  },
+  {
+    "releaseId": "mw098-63934a90e9b7",
+    "label": "meanwhile-recordings",
+    "artist": "Matter",
+    "releaseTitle": "With Us EP",
+    "catalogueNumber": "MW098",
+    "releaseDateISO": "2027-01-22",
+    "scheduledAt": "2026-11-08T06:33:41.351Z"
   }
 ]
