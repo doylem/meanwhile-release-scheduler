@@ -1,0 +1,90 @@
+{
+  "requestId": "ac3e5c67-f42e-461e-9c86-b68180ac3641",
+  "completedAt": "2026-11-08T06:31:23.755Z",
+  "ok": true,
+  "dryRun": true,
+  "releaseId": "mw098-63934a90e9b7",
+  "mode": "create-missing",
+  "plannedEvents": [
+    {
+      "taskId": "prepare-masters",
+      "title": "MW098 - Matter - Prepare masters for release (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-01T09:15:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "artwork-ideation",
+      "title": "MW098 - Matter - Artwork ideation starts (@Matty)",
+      "start": {
+        "dateTime": "2027-01-01T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "artwork-due",
+      "title": "MW098 - Matter - Artwork due (@Matty)",
+      "start": {
+        "dateTime": "2027-01-03T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "liner-notes-due",
+      "title": "MW098 - Matter - Liner notes due (@James)",
+      "start": {
+        "dateTime": "2027-01-06T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "inflyte-upload",
+      "title": "MW098 - Matter - Upload Promo to Inflyte (@James)",
+      "start": {
+        "dateTime": "2027-01-07T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "video-promos-due",
+      "title": "MW098 - Matter - Video promos due (@Matty)",
+      "start": {
+        "dateTime": "2027-01-17T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "teaser-1",
+      "title": "MW098 - Matter - Post 1st video teaser (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-19T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "teaser-2",
+      "title": "MW098 - Matter - Post 2nd video teaser (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-21T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "release-announcement",
+      "title": "MW098 - Matter - Post Banner / release announcement (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-23T12:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "soundcloud-upload",
+      "title": "MW098 - Matter - Upload release to Soundcloud (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-23T12:15:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    }
+  ]
+}
