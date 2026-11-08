@@ -1,0 +1,38 @@
+{
+  "requestId": "4472c433-c83f-4a95-9cfd-1d4e74acd861",
+  "completedAt": "2026-11-08T06:13:39.006Z",
+  "ok": true,
+  "catalogueNumber": "MWH026",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Horizons/MWH026 - Lev4n EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": false,
+      "fileCount": 0
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/tr3r2ysr1awa6bgtvyf4n/ABpUVme27NaWTx1iymEbLrg?rlkey=m8t2m3paknpc4hjsuq4tktg2j&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/muo4j7mp3l7xvw6hydsns/AHRrS_RKftJCAhwmdfwk5MM?rlkey=c1bwf32yhq01tjxszo9hkyqp2&dl=0"
+  }
+}
