@@ -3,5 +3,9 @@
   "dropbox": {
     "checkedAt": "2026-11-08T06:13:39.006Z",
     "folderFound": true
+  },
+  "calendar": {
+    "scheduledAt": "2026-11-08T06:14:47.704Z",
+    "eventCount": 10
   }
 }
