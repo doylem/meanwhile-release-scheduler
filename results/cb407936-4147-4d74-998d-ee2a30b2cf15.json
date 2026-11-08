@@ -1,0 +1,90 @@
+{
+  "requestId": "cb407936-4147-4d74-998d-ee2a30b2cf15",
+  "completedAt": "2026-11-08T06:27:59.600Z",
+  "ok": true,
+  "dryRun": true,
+  "releaseId": "mwh027-83b26909a679",
+  "mode": "create-missing",
+  "plannedEvents": [
+    {
+      "taskId": "prepare-masters",
+      "title": "MWH027 - Fabreeka - Prepare masters for release (@Gavin)",
+      "start": {
+        "dateTime": "2026-12-25T09:15:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "artwork-ideation",
+      "title": "MWH027 - Fabreeka - Artwork ideation starts (@Matty)",
+      "start": {
+        "dateTime": "2026-12-25T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "artwork-due",
+      "title": "MWH027 - Fabreeka - Artwork due (@Matty)",
+      "start": {
+        "dateTime": "2026-12-27T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "liner-notes-due",
+      "title": "MWH027 - Fabreeka - Liner notes due (@James)",
+      "start": {
+        "dateTime": "2026-12-30T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "inflyte-upload",
+      "title": "MWH027 - Fabreeka - Upload Promo to Inflyte (@James)",
+      "start": {
+        "dateTime": "2026-12-31T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "video-promos-due",
+      "title": "MWH027 - Fabreeka - Video promos due (@Matty)",
+      "start": {
+        "dateTime": "2027-01-10T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "teaser-1",
+      "title": "MWH027 - Fabreeka - Post 1st video teaser (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-12T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "teaser-2",
+      "title": "MWH027 - Fabreeka - Post 2nd video teaser (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-14T09:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "release-announcement",
+      "title": "MWH027 - Fabreeka - Post Banner / release announcement (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-16T12:00:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    },
+    {
+      "taskId": "soundcloud-upload",
+      "title": "MWH027 - Fabreeka - Upload release to Soundcloud (@Gavin)",
+      "start": {
+        "dateTime": "2027-01-16T12:15:00.000+11:00",
+        "timeZone": "Australia/Melbourne"
+      }
+    }
+  ]
+}
