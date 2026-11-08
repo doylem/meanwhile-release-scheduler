@@ -1,0 +1,37 @@
+{
+  "requestId": "e16626aa-0f17-4d0c-b8f5-3fd11dc63645",
+  "completedAt": "2026-11-08T06:32:39.635Z",
+  "ok": true,
+  "catalogueNumber": "MW098",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW098 - Matter - With Us EP",
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": true,
+      "fileCount": 5
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "assets": "https://www.dropbox.com/scl/fo/vflw6n5y30vfoviyt6lbb/ADiSnGMOeE0LlU8CpRp8WDE?rlkey=f70elu3wb9lykvznv6514nz6j&dl=0"
+  }
+}
