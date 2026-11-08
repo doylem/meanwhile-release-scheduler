@@ -1,6 +1,6 @@
 {
   "id": "8f8bdfcf-333d-4104-8b32-f355453c22c7",
-  "savedAt": "2026-11-08T06:10:09.700Z",
+  "savedAt": "2026-11-08T06:12:54.845Z",
   "input": {
     "label": "meanwhile-horizons",
     "catalogueNumber": "MWH026",
@@ -12,9 +12,12 @@
       },
       {
         "title": "Something"
+      },
+      {
+        "title": "Come to Me"
       }
     ],
-    "releaseDateISO": "",
+    "releaseDateISO": "2026-12-04",
     "royaltyRate": "50%",
     "royaltyNotes": "",
     "genre": "Progressive House",
