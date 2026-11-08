@@ -1,0 +1,24 @@
+{
+  "id": "c38909d7-d2b4-4246-9d32-b46185ef7375",
+  "savedAt": "2026-11-08T06:26:30.473Z",
+  "input": {
+    "label": "meanwhile-horizons",
+    "catalogueNumber": "MWH027",
+    "artist": "Fabreeka",
+    "releaseTitle": "Arzoopa / Merzouna",
+    "tracks": [
+      {
+        "title": "Arzoopa"
+      },
+      {
+        "title": "Merzouna"
+      }
+    ],
+    "releaseDateISO": "2027-01-15",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
