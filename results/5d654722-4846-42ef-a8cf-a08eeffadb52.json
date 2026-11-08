@@ -1,0 +1,34 @@
+{
+  "requestId": "5d654722-4846-42ef-a8cf-a08eeffadb52",
+  "completedAt": "2026-11-08T06:20:25.365Z",
+  "ok": true,
+  "catalogueNumber": "MW097",
+  "folderFound": false,
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": false,
+      "fileCount": 0
+    },
+    "premasters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {}
+}
