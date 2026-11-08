@@ -1,0 +1,21 @@
+{
+  "id": "e36ab595-ad4d-462b-9ba0-b7dfff7ddf85",
+  "savedAt": "2026-11-08T06:29:58.430Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW098",
+    "artist": "Matter",
+    "releaseTitle": "With Us EP",
+    "tracks": [
+      {
+        "title": "With Us"
+      }
+    ],
+    "releaseDateISO": "2027-01-22",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
