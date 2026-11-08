@@ -1,0 +1,24 @@
+{
+  "id": "8f8bdfcf-333d-4104-8b32-f355453c22c7",
+  "savedAt": "2026-11-08T06:10:09.700Z",
+  "input": {
+    "label": "meanwhile-horizons",
+    "catalogueNumber": "MWH026",
+    "artist": "Lev4n",
+    "releaseTitle": "Low Lines / Something / Come to Me",
+    "tracks": [
+      {
+        "title": "Low Lines"
+      },
+      {
+        "title": "Something"
+      }
+    ],
+    "releaseDateISO": "",
+    "royaltyRate": "50%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
