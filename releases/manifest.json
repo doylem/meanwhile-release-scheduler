@@ -79,5 +79,14 @@
     "catalogueNumber": "MWH026",
     "releaseDateISO": "2026-12-04",
     "scheduledAt": "2026-11-08T06:14:47.704Z"
+  },
+  {
+    "releaseId": "mw097-37f868e6b813",
+    "label": "meanwhile-recordings",
+    "artist": "Mike Rish",
+    "releaseTitle": "Foundation / Gyroz / Collapse",
+    "catalogueNumber": "MW097",
+    "releaseDateISO": "2026-12-11",
+    "scheduledAt": "2026-11-08T06:22:19.165Z"
   }
 ]
