@@ -1,0 +1,27 @@
+{
+  "id": "4117c9f4-9af4-45f2-a363-15bfb63d2a96",
+  "savedAt": "2026-11-08T06:19:37.455Z",
+  "input": {
+    "label": "meanwhile-recordings",
+    "catalogueNumber": "MW097",
+    "artist": "Mike Rish",
+    "releaseTitle": "Foundation / Gyroz / Collapse",
+    "tracks": [
+      {
+        "title": "Foundation"
+      },
+      {
+        "title": "Gyroz"
+      },
+      {
+        "title": "Collapse"
+      }
+    ],
+    "releaseDateISO": "2026-12-11",
+    "royaltyRate": "60%",
+    "royaltyNotes": "",
+    "genre": "Progressive House",
+    "notes": ""
+  },
+  "isScheduled": false
+}
