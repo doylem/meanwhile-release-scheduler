@@ -11,5 +11,8 @@
   "email": {
     "draftedAt": "2026-11-08T06:15:36.467Z"
   },
-  "coverArtUrl": "https://www.dropbox.com/scl/fi/aw6pbzpinpbbeu4a1lpds/MWH-Release-Cover-Square.jpg?rlkey=dfunux8qzoq4tpz7ncd3p3qb5&raw=1"
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/aw6pbzpinpbbeu4a1lpds/MWH-Release-Cover-Square.jpg?rlkey=dfunux8qzoq4tpz7ncd3p3qb5&raw=1",
+  "completedTasks": [
+    "prepare-masters"
+  ]
 }
