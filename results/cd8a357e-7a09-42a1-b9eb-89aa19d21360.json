@@ -1,0 +1,40 @@
+{
+  "requestId": "cd8a357e-7a09-42a1-b9eb-89aa19d21360",
+  "completedAt": "2026-11-15T06:22:12.361Z",
+  "ok": true,
+  "catalogueNumber": "MWH026",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Horizons/MWH026 - Lev4n EP",
+  "categories": {
+    "masters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "artwork": {
+      "found": true,
+      "fileCount": 5
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": false,
+      "fileCount": 0
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/aw6pbzpinpbbeu4a1lpds/MWH-Release-Cover-Square.jpg?rlkey=dfunux8qzoq4tpz7ncd3p3qb5&raw=1",
+  "sharedLinks": {
+    "masters": "https://www.dropbox.com/scl/fo/tr3r2ysr1awa6bgtvyf4n/ABpUVme27NaWTx1iymEbLrg?rlkey=m8t2m3paknpc4hjsuq4tktg2j&dl=0",
+    "artwork": "https://www.dropbox.com/scl/fo/fmrezrt7q2re61caj2epa/AIn_hmmRrh8x5ynCaBKpMRE?rlkey=esiase258r93qeyulgq24hq1y&dl=0",
+    "premasters": "https://www.dropbox.com/scl/fo/muo4j7mp3l7xvw6hydsns/AHRrS_RKftJCAhwmdfwk5MM?rlkey=c1bwf32yhq01tjxszo9hkyqp2&dl=0"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "catalogueNumber": "MWH026",
   "dropbox": {
-    "checkedAt": "2026-11-15T05:53:47.540Z",
+    "checkedAt": "2026-11-15T06:22:12.362Z",
     "folderFound": true
   },
   "calendar": {
@@ -10,5 +10,6 @@
   },
   "email": {
     "draftedAt": "2026-11-08T06:15:36.467Z"
-  }
+  },
+  "coverArtUrl": "https://www.dropbox.com/scl/fi/aw6pbzpinpbbeu4a1lpds/MWH-Release-Cover-Square.jpg?rlkey=dfunux8qzoq4tpz7ncd3p3qb5&raw=1"
 }
