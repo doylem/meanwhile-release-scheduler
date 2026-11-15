@@ -59,7 +59,6 @@ export function ReleaseDetail({
   onReleaseMoved,
   onScheduled,
   onStateChange,
-  dryRun,
   onToggleTask,
   taskTrackingDisabled,
   taskError,
@@ -69,7 +68,6 @@ export function ReleaseDetail({
   onReleaseMoved: (r: Release) => void;
   onScheduled?: () => void;
   onStateChange?: () => void;
-  dryRun: boolean;
   onToggleTask?: (taskId: string, done: boolean) => void;
   taskTrackingDisabled?: boolean;
   taskError?: string | null;
@@ -164,7 +162,7 @@ export function ReleaseDetail({
       return;
     }
     setMoveDateError(null);
-    move.run({ currentRelease: release, newReleaseDateISO: newDate }, { dryRun }).then(() => {
+    move.run({ currentRelease: release, newReleaseDateISO: newDate }).then(() => {
       if (move.result?.ok) {
         onReleaseMoved({
           ...release,
@@ -242,7 +240,7 @@ export function ReleaseDetail({
       >
         <SecondaryButton
           loading={dropbox.status === 'waiting' || dropbox.status === 'dispatching'}
-          onClick={() => dropbox.run({ catalogueNumber: release.catalogueNumber }, { dryRun })}
+          onClick={() => dropbox.run({ catalogueNumber: release.catalogueNumber })}
         >
           {dropbox.status === 'dispatching'
             ? 'Dispatching…'
@@ -338,7 +336,7 @@ export function ReleaseDetail({
           </MiniField>
           <PrimaryButton
             loading={calendar.status === 'waiting' || calendar.status === 'dispatching'}
-            onClick={() => calendar.run({ release, mode }, { dryRun })}
+            onClick={() => calendar.run({ release, mode })}
           >
             {calendar.status === 'dispatching'
               ? 'Dispatching…'
@@ -425,7 +423,7 @@ export function ReleaseDetail({
               loading={email.status === 'waiting' || email.status === 'dispatching'}
               onClick={() => {
                 setConfirmSend(false);
-                email.run({ release, mastersLink, artworkLink, bodyOverride: emailBody }, { dryRun });
+                email.run({ release, mastersLink, artworkLink, bodyOverride: emailBody });
               }}
             >
               {email.status === 'dispatching'
@@ -449,7 +447,7 @@ export function ReleaseDetail({
                     Send to <span className="text-snow font-semibold">{emailPreview.recipient}</span>? This cannot be undone.
                   </p>
                   <button
-                    onClick={() => { setConfirmSend(false); email.run({ release, sendDraftId: email.result!.draftId }, { dryRun }); }}
+                    onClick={() => { setConfirmSend(false); email.run({ release, sendDraftId: email.result!.draftId }); }}
                     className="rounded-lg px-4 py-2 text-sm font-mono font-medium text-depth hover:opacity-90 transition-opacity"
                     style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' }}
                   >

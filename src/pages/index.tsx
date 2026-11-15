@@ -75,7 +75,6 @@ function App() {
   const [pendingInput, setPendingInput] = useState<ReleaseInput | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [dryRun, setDryRun] = useState(true);
   const {
     releases: localReleases,
     loading: releasesLoading,
@@ -280,8 +279,6 @@ function App() {
         onActionsManifest={openActionsManifest}
         onEditSeed={openFormSeed}
         onDeleteLocal={handleDeleteLocal}
-        dryRun={dryRun}
-        setDryRun={setDryRun}
         onToggleTask={toggleTask}
         taskTrackingDisabled={!connection}
       />
@@ -339,7 +336,6 @@ function App() {
             {modalStep === "detail" && release && (
               <ReleaseDetail
                 release={release}
-                dryRun={dryRun}
                 releaseState={releaseStates[release.catalogueNumber]}
                 onStateChange={refreshStates}
                 onScheduled={handleScheduled}
@@ -403,8 +399,6 @@ function LandingPage({
   onActionsManifest,
   onEditSeed,
   onDeleteLocal,
-  dryRun,
-  setDryRun,
   onToggleTask,
   taskTrackingDisabled,
 }: {
@@ -420,8 +414,6 @@ function LandingPage({
   onActionsManifest: (entry: ManifestEntry) => void;
   onEditSeed: (seed: SeedType) => void;
   onDeleteLocal: (id: string) => void;
-  dryRun: boolean;
-  setDryRun: (v: boolean) => void;
   onToggleTask: (catalogueNumber: string, taskId: string, done: boolean) => void;
   taskTrackingDisabled: boolean;
 }) {
@@ -564,7 +556,6 @@ function LandingPage({
         <div className="hidden sm:flex items-center gap-4">
           <AdminLink />
           <GithubStatusButton onClick={() => setGithubModalOpen(true)} />
-          <DryRunToggle dryRun={dryRun} setDryRun={setDryRun} />
         </div>
         {/* Mobile: settings cog */}
         <button
@@ -576,23 +567,12 @@ function LandingPage({
         </button>
       </header>
 
-      {dryRun && (
-        <div className="relative z-10 bg-gold/8 border-b border-gold/15 px-8 py-2">
-          <p className="text-xs font-mono text-gold/80 text-center">
-            Test mode is on — no calendar events, emails, or Dropbox actions
-            will actually happen
-          </p>
-        </div>
-      )}
-
       {githubModalOpen && (
         <GithubConnectModal onClose={() => setGithubModalOpen(false)} />
       )}
 
       {settingsOpen && (
         <SettingsModal
-          dryRun={dryRun}
-          setDryRun={setDryRun}
           onOpenGithub={() => { setSettingsOpen(false); setGithubModalOpen(true); }}
           onClose={() => setSettingsOpen(false)}
         />
@@ -1486,30 +1466,6 @@ function SeedCard({
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
-function DryRunToggle({ dryRun, setDryRun }: { dryRun: boolean; setDryRun: (v: boolean) => void }) {
-  return (
-    <label className="flex items-center gap-2.5 cursor-pointer select-none">
-      <span className={`font-mono text-xs ${dryRun ? "text-gold" : "text-cyan"}`}>
-        {dryRun ? "Test mode" : "Live mode"}
-      </span>
-      <div
-        role="switch"
-        aria-checked={!dryRun}
-        onClick={() => setDryRun(!dryRun)}
-        className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 ${
-          dryRun ? "bg-gold/20" : "bg-cyan/25"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
-            dryRun ? "translate-x-0 bg-gold/60" : "translate-x-5 bg-cyan"
-          }`}
-        />
-      </div>
-    </label>
-  );
-}
-
 function CogIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1520,13 +1476,9 @@ function CogIcon() {
 }
 
 function SettingsModal({
-  dryRun,
-  setDryRun,
   onOpenGithub,
   onClose,
 }: {
-  dryRun: boolean;
-  setDryRun: (v: boolean) => void;
   onOpenGithub: () => void;
   onClose: () => void;
 }) {
@@ -1563,11 +1515,6 @@ function SettingsModal({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-wire/15 bg-elevated/20 px-4 py-3">
-            <span className="text-sm font-mono text-muted">Mode</span>
-            <DryRunToggle dryRun={dryRun} setDryRun={setDryRun} />
-          </div>
-
           <button
             onClick={onOpenGithub}
             className="w-full flex items-center justify-between rounded-xl border border-wire/15 bg-elevated/20 px-4 py-3 hover:bg-elevated/35 transition-colors"
