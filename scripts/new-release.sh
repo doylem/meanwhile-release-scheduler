@@ -45,6 +45,7 @@ configure_label() {
       LABEL_NAME="Meanwhile Horizons"
       TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"
       RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
+      RELEASE_FOLDER_TEMPLATE="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons/MWHxxx - Template (copy me)"
       TEMPLATE_TIF="MWH-Template.psd"
       MARK_PSB="MWH - mark.psb"
       PSB_FILES=(
@@ -163,7 +164,10 @@ elif [[ ${#EXISTING[@]} -gt 1 ]]; then
   print -P "%F{white}Rename or remove duplicates and try again.%f"
   exit 1
 else
-  FOLDER_NAME="${CAT_NUMBER} - ${ARTIST_NAME} - ${RELEASE_TITLE}"
+  # "/" can't appear in a folder name (it would create nested dirs) — use "_"
+  # like existing folders, e.g. "Talpa_Slow Tech".
+  safe_name() { local s="${1// \/ /_}"; print -r -- "${s//\//_}"; }
+  FOLDER_NAME="${CAT_NUMBER} - $(safe_name "$ARTIST_NAME") - $(safe_name "$RELEASE_TITLE")"
   RELEASE_DIR="${RELEASES_DIR}/${FOLDER_NAME}"
   FOLDER_STATUS="%F{white}(new)%f"
 fi
