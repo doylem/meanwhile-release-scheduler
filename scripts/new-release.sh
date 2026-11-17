@@ -258,18 +258,36 @@ var TIF_NAME     = "$(esc "$TIF_NAME")";
 // TIF — Photoshop finds the PSBs at their original paths and shows updated content.
 
 function main() {
-  // 1. Update text in the template PSBs
-  updatePSBText(TEMPLATE_DIR + "/" + PSB_ARTIST, LAYER_ARTIST, "$(esc "$ARTIST_NAME")", JUST_ARTIST);
-  updatePSBText(TEMPLATE_DIR + "/" + PSB_TRACKS, LAYER_TRACKS, "${TRACK_TEXT}",          JUST_TRACKS);
-  updatePSBText(TEMPLATE_DIR + "/" + PSB_CAT,    LAYER_CAT,    CAT_NUMBER,               JUST_CAT);
+  // Suppress Photoshop's own modal dialogs for the duration — notably "Some text
+  // layers need to be updated before they can be used for vector-based output",
+  // which appears whenever a PSB was last saved on a different Mac (different
+  // Photoshop/font versions). With dialogs off, Photoshop just updates the layers.
+  // Our own alert() calls are unaffected and still show.
+  var savedDialogs = app.displayDialogs;
+  app.displayDialogs = DialogModes.NO;
+  try {
+    // 1. Update text in the template PSBs
+    updatePSBText(TEMPLATE_DIR + "/" + PSB_ARTIST, LAYER_ARTIST, "$(esc "$ARTIST_NAME")", JUST_ARTIST);
+    updatePSBText(TEMPLATE_DIR + "/" + PSB_TRACKS, LAYER_TRACKS, "${TRACK_TEXT}",          JUST_TRACKS);
+    updatePSBText(TEMPLATE_DIR + "/" + PSB_CAT,    LAYER_CAT,    CAT_NUMBER,               JUST_CAT);
 
-  // 2. Archive updated PSBs in the release folder
-  copyFile(TEMPLATE_DIR + "/" + PSB_ARTIST, ASSETS_DIR + "/" + PSB_ARTIST);
-  copyFile(TEMPLATE_DIR + "/" + PSB_TRACKS, ASSETS_DIR + "/" + PSB_TRACKS);
-  copyFile(TEMPLATE_DIR + "/" + PSB_CAT,    ASSETS_DIR + "/" + PSB_CAT);
+    // 2. Archive updated PSBs in the release folder
+    copyFile(TEMPLATE_DIR + "/" + PSB_ARTIST, ASSETS_DIR + "/" + PSB_ARTIST);
+    copyFile(TEMPLATE_DIR + "/" + PSB_TRACKS, ASSETS_DIR + "/" + PSB_TRACKS);
+    copyFile(TEMPLATE_DIR + "/" + PSB_CAT,    ASSETS_DIR + "/" + PSB_CAT);
 
-  // 3. Open the release master file — System Events will trigger Update All Modified Content after this returns
-  open(new File(ASSETS_DIR + "/" + TIF_NAME));
+    // 3. Open the release master file and refresh its linked smart objects
+    //    (Layer > Smart Objects > Update All Modified Content) natively.
+    open(new File(ASSETS_DIR + "/" + TIF_NAME));
+    try {
+      executeAction(stringIDToTypeID("placedLayerUpdateAllModified"), undefined, DialogModes.NO);
+      return "updated";
+    } catch (e) {
+      return "needs-menu-click"; // shell falls back to clicking the menu item
+    }
+  } finally {
+    app.displayDialogs = savedDialogs;
+  }
 }
 
 function copyFile(srcPath, dstPath) {
@@ -309,14 +327,19 @@ JSXEOF
 # ── RUN IN PHOTOSHOP ──────────────────────────────────────────────────────────
 print ""
 print -P "  %F{cyan}Running script in Photoshop...%f"
-osascript << APPLEEOF > /dev/null
+JSX_RESULT=$(osascript << APPLEEOF
 tell application "Adobe Photoshop 2026"
   do javascript of file "${JSX_FILE}"
 end tell
 APPLEEOF
+)
 
-# Click Layer > Smart Objects > Update All Modified Content via UI automation
-osascript << APPLEEOF > /dev/null
+# The JSX refreshes smart objects itself and returns "updated". Only if that
+# failed, fall back to clicking Layer > Smart Objects > Update All Modified
+# Content via UI automation (needs Accessibility permission for the terminal).
+if [[ "$JSX_RESULT" != "updated" ]]; then
+  print -P "  %F{yellow}Refreshing smart objects via the Layer menu...%f"
+  osascript << APPLEEOF > /dev/null
 delay 1
 tell application "System Events"
   tell process "Adobe Photoshop 2026"
@@ -324,6 +347,7 @@ tell application "System Events"
   end tell
 end tell
 APPLEEOF
+fi
 
 print ""
 print -P "  %F{white}Done. Add your artwork to:%f"
