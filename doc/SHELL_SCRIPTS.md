@@ -134,5 +134,25 @@ manipulation, no Photoshop:
   `./scripts/make-compilation-videos.sh MW MW094` (reads `tracklist.txt`), or
   `./scripts/make-compilation-videos.sh MW MW094 "Artist - Title" ...`.
 
+**`scripts/make-youtube-videos.sh`** — One YouTube-ready MP4 per mastered track. Needs
+`ffmpeg` (`brew install ffmpeg`), no Photoshop. Independent of the other scripts — run any
+time masters and the flat cover are in the release pack:
+- Reads `release pack/masters/*.wav` and the square cover `release pack/artwork/*Cover*.jpg`.
+  If a designed 16:9 frame `release pack/artwork/*YouTube*.jpg|png` exists, that's used
+  (letterboxed, never cropped) instead of the generated frame.
+- Generated frame: 3840×2160, cover centred at 1800px over a blurred, darkened, zoomed copy
+  of itself. Composited once to `{CAT} - youtube frame.png` (doubles as a thumbnail).
+- Each track: frame + untouched master audio (AAC 384k/48kHz), H.264 30fps, picture fades
+  in/out over 2s. Output `release pack/youtube/{CAT} - {master name minus MASTERED}.mp4` —
+  deliberately not `release pack/videos/`, which check-dropbox counts as the promo deliverable.
+- Speed: the PNG is decoded once and repeated with the `loop` filter; `-loop 1` re-decodes
+  the 4K PNG every frame and was ~6× slower. `h264_videotoolbox` benchmarked slower than
+  libx264 here. A 7-minute track takes ~4 minutes on an M3 Pro.
+- Skips existing MP4s unless `FORCE=1`; writes `.partial.mp4` then renames so Dropbox never
+  syncs half a file. Env: `HEIGHT=1080`, `FADE=3`.
+- Usage: `./scripts/make-youtube-videos.sh` (interactive), `./scripts/make-youtube-videos.sh MW MW096`,
+  or `./scripts/make-youtube-videos.sh MW MW096 ambision` (3rd arg filters on the master
+  filename only — folder names often contain track titles).
+
 **Label config** lives at the top of each shell script (`configure_label()` function) —
 MW is fully configured, MWH has placeholder stubs.
