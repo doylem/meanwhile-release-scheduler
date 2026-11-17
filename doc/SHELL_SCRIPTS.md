@@ -51,7 +51,10 @@ for promo videos. Run *after* `new-release.sh` when artwork is finalised:
 - Per track it also exports `cover{n}.png` — the whole cover (mark visible) showing only
   that track's name — from a second fresh duplicate (the bg/titles pass hides layers before
   trimming, which changes the trimmed bounds for Horizons). Track names are written to
-  `assets/videos/track-names.txt`. Both feed `make-youtube-videos.sh`.
+  `assets/videos/track-names.txt`. Once per release it also exports `cover-mark.png`: the
+  mark layer alone (`LAYER_MARK`), transparent, on the full cover canvas — trimmed with
+  everything visible *before* hiding the rest, so the mark keeps its exact cover position.
+  All three feed `make-youtube-videos.sh`.
 - Opens the mark PSB (same release-local-copy convention) and exports `mark.png`
   with transparency to `assets/videos/`.
 - On success, chains straight into `relink-video-project.sh` with the same label/cat args.
@@ -147,8 +150,9 @@ manipulation, no Photoshop:
   master can't be matched, or there are no per-track covers yet, it falls back to the full
   `release pack/artwork/*Cover*.jpg` with a warning.
 - Frame (tuned against the hand-made MW093 Tonaco video): 3840×2160, cover at 91% of the
-  height with a soft drop shadow offset down-right, over the same cover zoomed to 124% of
-  the width (pushes its text/logo out of frame), lightly blurred, saturation 0.5.
+  height with a soft drop shadow offset down-right. Background = `assets/videos/cover-mark.png`
+  (the mark only, no gradient) on black, zoomed to 124% of the width, lightly blurred,
+  saturation 0.5. Without `cover-mark.png` it uses the track's cover instead (gradient included).
 - Each track: `release pack/youtube/{CAT} - {master name minus MASTERED}.png` (the frame,
   doubles as thumbnail) and `.mp4` — H.264 30fps, untouched master as AAC 384k/48kHz,
   picture fades in/out over 2s. Not `release pack/videos/`, which check-dropbox counts as

@@ -20,8 +20,9 @@
 #   {CAT} - {track}.mp4   — {track} = master filename minus " MASTERED"
 #
 # Look (matched against the hand-made MW093 Tonaco video): cover at 91% of frame height,
-# shadow ~0.8% of height blur offset down-right, background = cover scaled to 124% of
-# frame width (pushes the cover text/logo out of frame), saturation 0.5, light blur.
+# shadow ~0.8% of height blur offset down-right, background = assets/videos/cover-mark.png
+# (the mark alone, from export-video-assets.sh) on black, scaled to 124% of frame width,
+# saturation 0.5, light blur. Falls back to the track's cover if cover-mark.png is missing.
 #
 # The frame is composited ONCE to a PNG; the video then decodes it once and repeats it
 # with the loop filter ("-loop 1" re-decodes the 4K PNG every frame and was ~6x slower),
@@ -161,6 +162,12 @@ fi
 FULL_COVERS=("${ARTWORK_DIR}"/*(#i)cover*.(#i)(jpg|jpeg|png)(N.))
 FULL_COVER="${FULL_COVERS[1]}"
 
+# Background source: the mark alone (transparent, at its position on the cover) if
+# export-video-assets.sh has produced it, so the wide background is just the zoomed,
+# blurred mark on black — no gradient. Otherwise the track's own cover is used.
+COVER_MARK="${VIDEO_ASSETS_DIR}/cover-mark.png"
+[[ -f "$COVER_MARK" ]] || COVER_MARK=""
+
 TRACK_NAMES=()
 if [[ -f "${VIDEO_ASSETS_DIR}/track-names.txt" ]]; then
   TRACK_NAMES=("${(@f)$(<"${VIDEO_ASSETS_DIR}/track-names.txt")}")
@@ -216,8 +223,12 @@ WORK_DIR="$(mktemp -d -t meanwhile-youtube)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 # ── Frame: cover centred with drop shadow over a zoomed, muted copy of itself ─
-FRAME_FILTER="[0:v]split[a][b];
-  [a]scale=${BG_SIZE}:${BG_SIZE}:flags=bicubic,crop=${WIDTH}:${HEIGHT},
+# Input 0 = this track's cover, input 1 = background source (cover-mark.png or the cover).
+# The background is laid over black first, which is a no-op for an opaque cover.
+FRAME_FILTER="[0:v]null[b];
+  color=c=black:s=${BG_SIZE}x${BG_SIZE}:d=1[blk];
+  [1:v]scale=${BG_SIZE}:${BG_SIZE}:flags=bicubic,format=rgba[bgsrc];
+  [blk][bgsrc]overlay=0:0,crop=${WIDTH}:${HEIGHT},
      gblur=sigma=$(( HEIGHT / 360 )),eq=saturation=0.5:brightness=-0.03[bg];
   [b]scale=${COVER_SIZE}:${COVER_SIZE}:flags=lanczos,format=rgba[fg];
   color=c=black@${SHADOW_OPACITY}:s=${COVER_SIZE}x${COVER_SIZE}:d=1,format=rgba,
@@ -261,7 +272,7 @@ for WAV in "${MASTERS[@]}"; do
   fi
 
   print -P "%F{yellow}Rendering%f ${TRACK}  %F{white}← ${COVER:t}%f"
-  if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" \
+  if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" -i "${COVER_MARK:-$COVER}" \
        -filter_complex "$FRAME_FILTER" -frames:v 1 "$FRAME_PNG"; then
     print -P "  %F{red}✗ failed to build frame%f"; FAILED+=("$TRACK"); continue
   fi

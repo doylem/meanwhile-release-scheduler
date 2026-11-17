@@ -7,7 +7,8 @@
 #
 # MW and Horizons compose their promo videos differently, so what gets exported differs:
 # Both labels also get cover{n}.png (the whole cover, mark included, showing only track
-# n's name) and track-names.txt, which make-youtube-videos.sh uses for its per-track frames.
+# n's name), track-names.txt, and cover-mark.png (the mark layer alone, transparent, at its
+# position on the cover) — make-youtube-videos.sh uses these for its frames.
 #
 #   MW:       bg{n}.png (background + track name baked together, mark hidden) + mark.png
 #   Horizons: sky.png (background alone, no text) + titles{n}.png (artist/catalogue/track
@@ -285,6 +286,45 @@ function makeExportDoc(tifPath, artboardName, hideNames) {
   exportDoc.trim(TrimType.TRANSPARENT, true, true, true, true);
   return exportDoc;
 }
+
+// cover-mark.png for make-youtube-videos.sh: the mark alone, transparent, at its exact
+// size/position on the cover. Unlike makeExportDoc, this trims BEFORE hiding anything,
+// so the canvas keeps the full cover bounds instead of shrinking to the mark.
+function makeMarkOnlyDoc(tifPath, artboardName, markName) {
+  var exportDoc = makeExportDoc(tifPath, artboardName, []);
+  if (!exportDoc) return null;
+  var target = null;
+  for (var i = 0; i < exportDoc.layers.length; i++) {
+    if (exportDoc.layers[i].name === artboardName) target = exportDoc.layers[i];
+  }
+  // Hide everything except markName, keeping any groups that contain it visible.
+  function isolate(layers) {
+    var found = false;
+    for (var j = 0; j < layers.length; j++) {
+      var l = layers[j];
+      if (l.name === markName) { l.visible = true; found = true; continue; }
+      if (l.typename === "LayerSet" && findLayer(l.layers, markName)) {
+        l.visible = true; isolate(l.layers); found = true; continue;
+      }
+      try { l.visible = false; } catch (e) {}
+    }
+    return found;
+  }
+  if (!target || !isolate(target.layers)) {
+    alert("Mark layer not found: " + markName + " in " + artboardName);
+    exportDoc.close(SaveOptions.DONOTSAVECHANGES);
+    return null;
+  }
+  return exportDoc;
+}
+
+function exportMarkOnly(tifPath, artboardName, markName, outPath) {
+  var doc = makeMarkOnlyDoc(tifPath, artboardName, markName);
+  if (doc) {
+    exportPNG(doc, new File(outPath), true);
+    doc.close(SaveOptions.DONOTSAVECHANGES);
+  }
+}
 '
 
 run_jsx() {
@@ -466,6 +506,8 @@ if (skyDoc) {
   exportPNG(skyDoc, new File(SKY_OUT), true);
   skyDoc.close(SaveOptions.DONOTSAVECHANGES);
 }
+
+exportMarkOnly(TIF_PATH, ARTBOARD_NAME, "$(esc "$LAYER_MARK")", "$(esc "${VIDEOS_DIR}/cover-mark.png")");
 JSXEOF
 else
   cat > "$FINISH_JSX" << JSXEOF
@@ -476,6 +518,8 @@ var JUST_TRACKS  = "$(esc "$JUST_TRACKS")";
 var FULL_TEXT    = "${FULL_TRACK_TEXT}";
 var MARK_PSB     = "$(esc "$MARK_PSB_PATH")";
 var OUT_PATH     = "$(esc "${VIDEOS_DIR}/mark.png")";
+var TIF_PATH     = "$(esc "$TIF_PATH")";
+var ARTBOARD_NAME= "$(esc "$ARTBOARD_NAME")";
 
 setTrackText(PSB_PATH, LAYER_TRACKS, FULL_TEXT, JUST_TRACKS);
 
@@ -489,10 +533,12 @@ for (var m = 0; m < markDoc.layers.length; m++) {
 }
 exportPNG(markDoc, new File(OUT_PATH), true);
 markDoc.close(SaveOptions.DONOTSAVECHANGES);
+
+exportMarkOnly(TIF_PATH, ARTBOARD_NAME, "$(esc "$LAYER_MARK")", "$(esc "${VIDEOS_DIR}/cover-mark.png")");
 JSXEOF
 fi
 
-print -P "  %F{cyan}Restoring track list + exporting mark.png$( [[ "$LABEL_KEY" == "MWH" ]] && echo " + sky.png")...%f"
+print -P "  %F{cyan}Restoring track list + exporting mark.png + cover-mark.png$( [[ "$LABEL_KEY" == "MWH" ]] && echo " + sky.png")...%f"
 run_jsx "$FINISH_JSX"
 
 # ── COPY STATIC LOGO (if available in template folder) ────────────────────────
@@ -511,12 +557,14 @@ if [[ "$LABEL_KEY" == "MWH" ]]; then
   done
   EXPECTED+=("${VIDEOS_DIR}/sky.png")
   EXPECTED+=("${VIDEOS_DIR}/mark.png")
+  EXPECTED+=("${VIDEOS_DIR}/cover-mark.png")
 else
   for (( n = 1; n <= ${#tracks[@]}; n++ )); do
     EXPECTED+=("${VIDEOS_DIR}/bg${n}.png")
     EXPECTED+=("${VIDEOS_DIR}/cover${n}.png")
   done
   EXPECTED+=("${VIDEOS_DIR}/mark.png")
+  EXPECTED+=("${VIDEOS_DIR}/cover-mark.png")
 fi
 
 FOUND=0
