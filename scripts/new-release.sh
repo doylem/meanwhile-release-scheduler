@@ -8,6 +8,19 @@
 # Files are copied into {release folder}/assets/images/ so PSBs live
 # alongside the rest of the release folder structure.
 
+# ── PHOTOSHOP VERSION ─────────────────────────────────────────────────────────
+# Use the newest "Adobe Photoshop 20xx" in /Applications, so each Mac drives
+# whichever version it has (and has granted Dropbox access to). Override with
+# PHOTOSHOP_APP="Adobe Photoshop 2026" ./scripts/...
+if [[ -z "$PHOTOSHOP_APP" ]]; then
+  _ps_apps=(/Applications/Adobe\ Photoshop\ 20<->(N/))
+  PHOTOSHOP_APP="${_ps_apps[-1]:t}"
+fi
+if [[ -z "$PHOTOSHOP_APP" || ! -d "/Applications/${PHOTOSHOP_APP}/${PHOTOSHOP_APP}.app" ]]; then
+  print -P "%F{red}Adobe Photoshop not found in /Applications (looked for \"${PHOTOSHOP_APP:-Adobe Photoshop 20xx}\").%f"
+  exit 1
+fi
+
 # ── LABEL CONFIGS ─────────────────────────────────────────────────────────────
 LABEL_KEYS=("MW" "MWH")
 LABEL_DISPLAY_NAMES=("Meanwhile Recordings" "Meanwhile Horizons")
@@ -328,7 +341,7 @@ JSXEOF
 print ""
 print -P "  %F{cyan}Running script in Photoshop...%f"
 JSX_RESULT=$(osascript << APPLEEOF
-tell application "Adobe Photoshop 2026"
+tell application "${PHOTOSHOP_APP}"
   do javascript of file "${JSX_FILE}"
 end tell
 APPLEEOF
@@ -342,7 +355,7 @@ if [[ "$JSX_RESULT" != "updated" ]]; then
   osascript << APPLEEOF > /dev/null
 delay 1
 tell application "System Events"
-  tell process "Adobe Photoshop 2026"
+  tell process "${PHOTOSHOP_APP}"
     click menu item "Update All Modified Content" of menu 1 of menu item "Smart Objects" of menu 1 of menu bar item "Layer" of menu bar 1
   end tell
 end tell

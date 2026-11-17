@@ -42,6 +42,19 @@
 #   Non-interactive: ./scripts/export-video-assets.sh MW MW090
 #                     ./scripts/export-video-assets.sh MWH MWH024
 
+# ── PHOTOSHOP VERSION ─────────────────────────────────────────────────────────
+# Use the newest "Adobe Photoshop 20xx" in /Applications, so each Mac drives
+# whichever version it has (and has granted Dropbox access to). Override with
+# PHOTOSHOP_APP="Adobe Photoshop 2026" ./scripts/...
+if [[ -z "$PHOTOSHOP_APP" ]]; then
+  _ps_apps=(/Applications/Adobe\ Photoshop\ 20<->(N/))
+  PHOTOSHOP_APP="${_ps_apps[-1]:t}"
+fi
+if [[ -z "$PHOTOSHOP_APP" || ! -d "/Applications/${PHOTOSHOP_APP}/${PHOTOSHOP_APP}.app" ]]; then
+  print -P "%F{red}Adobe Photoshop not found in /Applications (looked for \"${PHOTOSHOP_APP:-Adobe Photoshop 20xx}\").%f"
+  exit 1
+fi
+
 # ── LABEL CONFIGS ─────────────────────────────────────────────────────────────
 LABEL_KEYS=("MW" "MWH")
 LABEL_DISPLAY_NAMES=("Meanwhile Recordings" "Meanwhile Horizons")
@@ -277,7 +290,7 @@ run_jsx() {
   # so it's raised explicitly here rather than relying on the default.
   osascript << APPLEEOF > /dev/null
 with timeout of 1800 seconds
-  tell application "Adobe Photoshop 2026"
+  tell application "${PHOTOSHOP_APP}"
     do javascript of file "$1"
   end tell
 end timeout

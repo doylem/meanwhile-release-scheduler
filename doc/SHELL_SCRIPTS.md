@@ -4,7 +4,9 @@ See `doc/AGENTS.md` first for orientation; come here for the details behind that
 
 These are separate from the TypeScript `scripts/*.ts` GitHub Actions scripts. They run
 locally on the label's Mac and automate Photoshop artwork/video prep. `new-release.sh`
-and `export-video-assets.sh` require Adobe Photoshop 2026; `relink-video-project.sh` is
+and `export-video-assets.sh` drive the newest Adobe Photoshop in `/Applications` (override
+with `PHOTOSHOP_APP="Adobe Photoshop 2026"`). That version needs Files & Folders → Dropbox
+access in macOS Privacy & Security, or saves fail with "write access was not granted"; `relink-video-project.sh` is
 pure file manipulation (zip/JSON text) and needs neither Photoshop nor Filmora installed
 to run. All three are zsh.
 
@@ -16,9 +18,11 @@ two audio clips by hand in Filmora, export).
 - Creates `{CAT} - {Artist} - {Title}/assets/images/` under the label's Releases folder
   in Dropbox, copying PSB template files and a template TIF.
 - Runs a generated JSX script in Photoshop to update text layers (artist, track names,
-  catalogue number) in the template PSBs, then uses AppleScript System Events to click
-  "Layer → Smart Objects → Update All Modified Content" (required because Photoshop 2026's
-  scripting API doesn't expose `updateAllLinkedContent`).
+  catalogue number) in the template PSBs with Photoshop's dialogs suppressed (so "text
+  layers need to be updated" prompts for files saved on another Mac don't block it), then
+  runs "Layer → Smart Objects → Update All Modified Content" via the
+  `placedLayerUpdateAllModified` action, falling back to clicking the menu item through
+  AppleScript System Events (needs Accessibility permission) only if that fails.
 - Strips macOS quarantine attributes from copied files.
 - Usage: `./scripts/new-release.sh` (interactive) or
   `./scripts/new-release.sh MW MW091 "Artist" "Title" "Track 1" "Track 2"`.
