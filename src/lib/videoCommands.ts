@@ -36,3 +36,8 @@ export function videoAssetsCommand(release: Release, labelShortCode: string): st
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   return ['./scripts/export-video-assets.sh', labelShortCode, `"${esc(release.catalogueNumber)}"`].join(' ');
 }
+
+/** make-youtube-videos.sh — one YouTube MP4 per master in release pack/masters/. */
+export function youtubeVideosCommand(release: Pick<Release, 'catalogueNumber'>, labelShortCode: string): string {
+  return ['./scripts/make-youtube-videos.sh', labelShortCode, shellQuote(release.catalogueNumber)].join(' ');
+}

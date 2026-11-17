@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildRelease } from '../src/lib/release';
-import { isCompilation, shellQuote, videoAssetsCommand } from '../src/lib/videoCommands';
+import { isCompilation, shellQuote, videoAssetsCommand, youtubeVideosCommand } from '../src/lib/videoCommands';
 import type { ReleaseInput } from '../src/lib/types';
 
 const base: ReleaseInput = {
@@ -46,5 +46,10 @@ describe('video assets command', () => {
 
   it('single-quotes for the shell', () => {
     expect(shellQuote("it's")).toBe("'it'\\''s'");
+  });
+
+  it('builds the make-youtube-videos.sh command', () => {
+    const release = buildRelease({ ...base, catalogueNumber: 'MW096', artist: 'Sam Scheme', tracks: [{ title: 'Ambision' }] });
+    expect(youtubeVideosCommand(release, 'MW')).toBe("./scripts/make-youtube-videos.sh MW 'MW096'");
   });
 });

@@ -4,7 +4,7 @@ import { useWorkflowAction, type ActionStatus } from '../lib/useWorkflowAction';
 import { isFriday, nextFriday } from '../lib/scheduling';
 import { useSettings } from '../lib/useSettings';
 import { findLabel } from '../lib/settings';
-import { isCompilation, videoAssetsCommand } from '../lib/videoCommands';
+import { isCompilation, videoAssetsCommand, youtubeVideosCommand } from '../lib/videoCommands';
 import type { DropboxAssetCategory, DropboxAssetStatus, Release, ReleaseState } from '../lib/types';
 
 type DuplicateMode = 'cancel' | 'create-missing' | 'recreate-all' | 'update-existing';
@@ -51,7 +51,7 @@ const CATEGORY_LABELS: Record<DropboxAssetCategory, string> = {
   remixPacks: 'Remix packs',
 };
 
-type SectionKey = 'dropbox' | 'calendar' | 'email' | 'artwork' | 'videoAssets' | 'move';
+type SectionKey = 'dropbox' | 'calendar' | 'email' | 'artwork' | 'videoAssets' | 'youtube' | 'move';
 
 export function ReleaseDetail({
   release,
@@ -508,9 +508,26 @@ export function ReleaseDetail({
         <VideoAssetsCommand release={release} labelShortCode={label.shortCode} />
       </CollapsibleSection>
 
-      {/* Move release date (optional) */}
+      {/* Generate YouTube videos */}
       <CollapsibleSection
         number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 3}
+        title="Generate YouTube videos"
+        subtitle="Run in terminal"
+        open={openSection === 'youtube'}
+        onToggle={() => toggle('youtube')}
+      >
+        <p className="text-xs font-mono text-muted">
+          Once the masters are in <span className="text-snow/80">release pack/masters/</span> and the cover is
+          in <span className="text-snow/80">release pack/artwork/</span>, run this to render one 4K MP4 per track
+          into <span className="text-snow/80">release pack/youtube/</span>. Add a track name at the end to
+          render just that one. Needs ffmpeg (<span className="text-snow/80">brew install ffmpeg</span>).
+        </p>
+        <CommandBox cmd={youtubeVideosCommand(release, label.shortCode)} rows={2} />
+      </CollapsibleSection>
+
+      {/* Move release date (optional) */}
+      <CollapsibleSection
+        number={[features.dropbox, features.calendar, features.email].filter(Boolean).length + 4}
         title="Move release date"
         subtitle="Optional"
         done={move.result?.ok}
@@ -816,9 +833,11 @@ function ArtworkCommand({ release, labelShortCode }: { release: Release; labelSh
 }
 
 function VideoAssetsCommand({ release, labelShortCode }: { release: Release; labelShortCode: string }) {
-  const cmd = videoAssetsCommand(release, labelShortCode);
   const rows = isCompilation(release) ? Math.min(release.tracks.length + 1, 10) : 3;
+  return <CommandBox cmd={videoAssetsCommand(release, labelShortCode)} rows={rows} />;
+}
 
+function CommandBox({ cmd, rows }: { cmd: string; rows: number }) {
   const [value, setValue] = useState(cmd);
   const [copied, setCopied] = useState(false);
 
