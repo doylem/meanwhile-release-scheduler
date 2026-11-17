@@ -162,7 +162,7 @@ manipulation, no Photoshop:
   libx264 here. A 7-minute track takes ~4 minutes on an M3 Pro.
 - Skips existing MP4s unless `FORCE=1`. Encodes in a local `mktemp -d` dir and moves the
   finished MP4 in — encoding to a temp name inside Dropbox and renaming over the old file
-  got reverted by Dropbox sync (MP4 vanished, temp file reappeared). Env: `HEIGHT=1080`, `FADE=3`.
+  got reverted by Dropbox sync (MP4 vanished, temp file reappeared). Env: `HEIGHT=1080`, `FADE=3`, `FRAME_ONLY=1` (build the frame PNG(s) for review, no MP4).
 - Usage: `./scripts/make-youtube-videos.sh` (interactive), `./scripts/make-youtube-videos.sh MW MW096`,
   or `./scripts/make-youtube-videos.sh MW MW096 ambision` (3rd arg filters on the master
   filename only — folder names often contain track titles).

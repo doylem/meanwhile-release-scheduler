@@ -34,6 +34,7 @@
 #   HEIGHT=1080   output height (default 2160 = 4K; width is always 16:9)
 #   FADE=3        fade in/out seconds (default 2)
 #   FORCE=1       re-render MP4s that already exist
+#   FRAME_ONLY=1  only build the frame PNG(s) for review — no MP4s encoded
 #
 # Usage:
 #   Interactive:     ./scripts/make-youtube-videos.sh
@@ -246,7 +247,7 @@ for WAV in "${MASTERS[@]}"; do
   TMP_MP4="${WORK_DIR}/${CAT_NUMBER} - ${TRACK}.mp4"
   FRAME_PNG="${OUT_DIR}/${CAT_NUMBER} - ${TRACK}.png"
 
-  if [[ -f "$OUT_MP4" && -z "$FORCE" ]]; then
+  if [[ -f "$OUT_MP4" && -z "$FORCE" && -z "$FRAME_ONLY" ]]; then
     print -P "%F{white}Skipping (exists, FORCE=1 to redo):%f ${OUT_MP4:t}"
     continue
   fi
@@ -275,6 +276,10 @@ for WAV in "${MASTERS[@]}"; do
   if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" -i "${COVER_MARK:-$COVER}" \
        -filter_complex "$FRAME_FILTER" -frames:v 1 "$FRAME_PNG"; then
     print -P "  %F{red}✗ failed to build frame%f"; FAILED+=("$TRACK"); continue
+  fi
+  if [[ -n "$FRAME_ONLY" ]]; then
+    print -P "  %F{green}✓%f ${FRAME_PNG:t}  %F{white}(FRAME_ONLY — no video)%f"
+    continue
   fi
 
   DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WAV")

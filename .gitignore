@@ -9,3 +9,6 @@ out/
 # Local result files written by scripts during dev — committed only on the
 # dedicated `results` branch by CI, never on main.
 /results/*.json
+
+# TypeScript incremental build cache
+*.tsbuildinfo
