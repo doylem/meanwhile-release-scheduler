@@ -1,30 +1,33 @@
 #!/bin/zsh
 # make-youtube-videos.sh — One YouTube-ready MP4 per mastered track
 #
-# For every release pack/masters/*.wav, renders a widescreen video: the full,
-# untouched master as audio, and a still frame of the square cover artwork centred
-# over a blurred, darkened, zoomed-in copy of itself. The picture fades in from black
-# at the start and out to black at the end; the audio is not faded.
+# For every release pack/masters/*.wav, renders a 16:9 video: the full, untouched master
+# as audio, and a still frame of that track's square cover centred (with a soft drop
+# shadow) over a zoomed, lightly blurred, desaturated copy of itself. The picture fades
+# in from black at the start and out to black at the end; the audio is not faded.
 #
-# Inputs (all inside the release folder):
-#   release pack/masters/*.wav          — one video per file (.asd sidecars ignored)
-#   release pack/artwork/*Cover*.jpg    — the flat square cover (MW "Meanwhile Release
-#                                         Cover.jpg", MWH "MWH Release Cover Square.jpg")
-#   release pack/artwork/*YouTube*.jpg|png — OPTIONAL designed 16:9 frame. If present it's
-#                                         used as-is (scaled to fit) instead of the
-#                                         generated blurred-cover frame.
+# Per-track covers come from export-video-assets.sh, which writes (in assets/videos/):
+#   cover{n}.png       — the whole cover, mark included, showing ONLY track n's name
+#   track-names.txt    — the track names, line n = cover{n}.png
+# Each master is matched to a track by name (see match_track). A master that can't be
+# matched — or a release where export-video-assets.sh hasn't been run since cover{n}.png
+# was added — falls back to the full release cover release pack/artwork/*Cover*.jpg,
+# which lists every track, with a warning.
 #
 # Output: release pack/youtube/  (deliberately NOT release pack/videos/, which
 # check-dropbox treats as the promo-video deliverable)
-#   {CAT} - youtube frame.png           — the still frame (also handy as a thumbnail)
-#   {CAT} - {track}.mp4                 — {track} = master filename minus " MASTERED"
+#   {CAT} - {track}.png   — the still frame (also handy as the thumbnail)
+#   {CAT} - {track}.mp4   — {track} = master filename minus " MASTERED"
 #
-# The frame is composited ONCE to a PNG, then each track encodes that PNG with only
-# the fades applied — blurring a 4K frame per video frame would be far slower. The PNG
-# is decoded once and repeated with the loop filter rather than "-loop 1" (which
-# re-decodes the 4K PNG every frame) — ~6x faster, about 4x realtime on an M3 Pro.
-# Existing MP4s are skipped unless FORCE=1. Each MP4 is written to a temp name and
-# renamed on success, so Dropbox never syncs a half-written file.
+# Look (matched against the hand-made MW093 Tonaco video): cover at 91% of frame height,
+# shadow ~0.8% of height blur offset down-right, background = cover scaled to 124% of
+# frame width (pushes the cover text/logo out of frame), saturation 0.5, light blur.
+#
+# The frame is composited ONCE to a PNG; the video then decodes it once and repeats it
+# with the loop filter ("-loop 1" re-decodes the 4K PNG every frame and was ~6x slower),
+# so only the fades are computed per frame. ~2x realtime on an M3 Pro.
+# Existing MP4s are skipped unless FORCE=1. Each MP4 is encoded in a local temp dir and
+# moved into Dropbox only when finished (see WORK_DIR).
 #
 # Env overrides:
 #   HEIGHT=1080   output height (default 2160 = 4K; width is always 16:9)
@@ -36,13 +39,16 @@
 #   Non-interactive: ./scripts/make-youtube-videos.sh MW MW096
 #   One track only:  ./scripts/make-youtube-videos.sh MW MW096 ambision
 #                    (3rd arg = case-insensitive substring of the master filename)
-
 setopt extendedglob
 
 HEIGHT="${HEIGHT:-2160}"
 FADE="${FADE:-2}"
 WIDTH=$(( HEIGHT * 16 / 9 ))
-COVER_SIZE=$(( HEIGHT * 5 / 6 ))   # square cover = 5/6 of frame height (1800px at 4K)
+COVER_SIZE=$(( HEIGHT * 91 / 100 ))   # 1965px at 4K
+BG_SIZE=$(( WIDTH * 124 / 100 ))       # background cover, square, overflows the frame
+SHADOW_BLUR=$(( HEIGHT / 120 ))        # 18px at 4K
+SHADOW_OFFSET=$(( HEIGHT / 240 ))      # 9px at 4K
+SHADOW_OPACITY=0.7
 FPS=30
 
 # ── LABEL CONFIGS ─────────────────────────────────────────────────────────────
@@ -133,6 +139,7 @@ fi
 PACK_DIR="${RELEASE_DIR}/release pack"
 MASTERS_DIR="${PACK_DIR}/masters"
 ARTWORK_DIR="${PACK_DIR}/artwork"
+VIDEO_ASSETS_DIR="${RELEASE_DIR}/assets/videos"
 OUT_DIR="${PACK_DIR}/youtube"
 
 # ── INPUTS ────────────────────────────────────────────────────────────────────
@@ -151,68 +158,112 @@ if [[ ${#MASTERS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-DESIGNED_FRAME=("${ARTWORK_DIR}"/*(#i)youtube*.(#i)(jpg|jpeg|png)(N.))
-COVERS=("${ARTWORK_DIR}"/*(#i)cover*.(#i)(jpg|jpeg|png)(N.))
-COVERS=(${COVERS:#*(#i)youtube*})
+FULL_COVERS=("${ARTWORK_DIR}"/*(#i)cover*.(#i)(jpg|jpeg|png)(N.))
+FULL_COVER="${FULL_COVERS[1]}"
 
-if [[ ${#DESIGNED_FRAME[@]} -eq 0 && ${#COVERS[@]} -eq 0 ]]; then
-  print -P "%F{red}No cover artwork found in:%f"
-  print -P "  %F{white}${ARTWORK_DIR}%f"
-  print -P "%F{white}Expected a *Cover*.jpg (or a *YouTube*.jpg/png frame).%f"
-  exit 1
+TRACK_NAMES=()
+if [[ -f "${VIDEO_ASSETS_DIR}/track-names.txt" ]]; then
+  TRACK_NAMES=("${(@f)$(<"${VIDEO_ASSETS_DIR}/track-names.txt")}")
+  TRACK_NAMES=(${TRACK_NAMES:#})
 fi
 
+# Lower-case, punctuation → spaces, single-spaced, padded with spaces at both ends so
+# "*${needle}*" only matches whole words.
+norm() {
+  local s="${(L)1}"
+  s="${s//[^a-z0-9]/ }"
+  print -r -- " ${(j: :)${=s}} "
+}
+
+# Print the 1-based track number whose name best matches master filename $1, or
+# nothing if none (or a tie). A track's full name (e.g. "Leaves (Dub Mix)") matching
+# beats just its base name before any "(" ("Leaves"), so an original and its remix
+# resolve to the right cover; longer matches beat shorter ones.
+match_track() {
+  local master="$(norm "$1")" best="" best_score=0 tied=0 n full base score
+  for (( n = 1; n <= ${#TRACK_NAMES[@]}; n++ )); do
+    full="$(norm "${TRACK_NAMES[$n]}")"
+    base="$(norm "${TRACK_NAMES[$n]%%\(*}")"
+    score=0
+    if [[ "$master" == *"$full"* ]]; then score=$(( 1000 + ${#full} ))
+    elif [[ "$base" != "  " && "$master" == *"$base"* ]]; then score=${#base}
+    fi
+    if (( score > best_score )); then best=$n; best_score=$score; tied=0
+    elif (( score > 0 && score == best_score )); then tied=1
+    fi
+  done
+  (( tied )) || print -r -- "$best"
+}
+
 mkdir -p "$OUT_DIR"
-FRAME_PNG="${OUT_DIR}/${CAT_NUMBER} - youtube frame.png"
 
 print -P "%F{white}Release:%f  ${RELEASE_DIR:t}"
-if [[ ${#DESIGNED_FRAME[@]} -gt 0 ]]; then
-  print -P "%F{white}Frame:%f    ${DESIGNED_FRAME[1]:t} (designed)"
+if [[ ${#TRACK_NAMES[@]} -gt 0 ]]; then
+  print -P "%F{white}Tracks:%f   ${(j:, :)TRACK_NAMES}  %F{white}(assets/videos/track-names.txt)%f"
 else
-  print -P "%F{white}Cover:%f    ${COVERS[1]:t}"
+  print -P "%F{yellow}No assets/videos/track-names.txt — run export-video-assets.sh first for per-track covers.%f"
+  print -P "%F{yellow}Falling back to the full cover for every track.%f"
 fi
 print -P "%F{white}Output:%f   release pack/youtube/  (${WIDTH}x${HEIGHT}, ${FADE}s fades)"
 print ""
 
 START_EPOCH=$(date +%s)
 
-# ── STAGE 1: composite the still frame ────────────────────────────────────────
-print -P "%F{yellow}Building frame…%f"
-if [[ ${#DESIGNED_FRAME[@]} -gt 0 ]]; then
-  # Letterbox rather than crop, so nothing in a designed frame is ever cut off.
-  FRAME_FILTER="[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease:flags=lanczos,
-    pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2:black,format=rgb24"
-  FRAME_INPUT="${DESIGNED_FRAME[1]}"
-else
-  # Background: cover zoomed to fill the frame, blurred and darkened. The blur runs
-  # at quarter resolution then scales back up — same look, much faster.
-  FRAME_FILTER="[0:v]split[a][b];
-    [a]scale=$(( WIDTH / 4 )):$(( WIDTH / 4 )),crop=$(( WIDTH / 4 )):$(( HEIGHT / 4 )),
-       gblur=sigma=12,eq=brightness=-0.18:saturation=0.9,
-       scale=${WIDTH}:${HEIGHT}:flags=bicubic[bg];
-    [b]scale=${COVER_SIZE}:${COVER_SIZE}:flags=lanczos[fg];
-    [bg][fg]overlay=(W-w)/2:(H-h)/2,format=rgb24"
-  FRAME_INPUT="${COVERS[1]}"
-fi
+# MP4s are encoded here, off Dropbox, then moved in whole. Encoding to a temp name
+# inside the Dropbox folder and renaming over an existing file got reverted by
+# Dropbox's sync (the finished MP4 vanished and the temp file came back).
+WORK_DIR="$(mktemp -d -t meanwhile-youtube)"
+trap 'rm -rf "$WORK_DIR"' EXIT
 
-if ! ffmpeg -hide_banner -loglevel error -y -i "$FRAME_INPUT" \
-     -filter_complex "$FRAME_FILTER" -frames:v 1 "$FRAME_PNG"; then
-  print -P "%F{red}Failed to build frame.%f"; exit 1
-fi
-print -P "  %F{green}✓%f ${FRAME_PNG:t}"
-print ""
+# ── Frame: cover centred with drop shadow over a zoomed, muted copy of itself ─
+FRAME_FILTER="[0:v]split[a][b];
+  [a]scale=${BG_SIZE}:${BG_SIZE}:flags=bicubic,crop=${WIDTH}:${HEIGHT},
+     gblur=sigma=$(( HEIGHT / 360 )),eq=saturation=0.5:brightness=-0.03[bg];
+  [b]scale=${COVER_SIZE}:${COVER_SIZE}:flags=lanczos,format=rgba[fg];
+  color=c=black@${SHADOW_OPACITY}:s=${COVER_SIZE}x${COVER_SIZE}:d=1,format=rgba,
+     pad=w=iw+$(( SHADOW_BLUR * 8 )):h=ih+$(( SHADOW_BLUR * 8 )):x=$(( SHADOW_BLUR * 4 )):y=$(( SHADOW_BLUR * 4 )):color=black@0,
+     gblur=sigma=${SHADOW_BLUR}[sh];
+  [bg][sh]overlay=x=(W-w)/2+${SHADOW_OFFSET}:y=(H-h)/2+${SHADOW_OFFSET}[bs];
+  [bs][fg]overlay=(W-w)/2:(H-h)/2,format=rgb24"
 
-# ── STAGE 2: one MP4 per master ───────────────────────────────────────────────
+# ── One frame + MP4 per master ────────────────────────────────────────────────
 FAILED=()
 for WAV in "${MASTERS[@]}"; do
   TRACK="${WAV:t:r}"
   TRACK="${TRACK//(#i)[ _-]#mastered/}"
   OUT_MP4="${OUT_DIR}/${CAT_NUMBER} - ${TRACK}.mp4"
-  TMP_MP4="${OUT_DIR}/.${CAT_NUMBER} - ${TRACK}.partial.mp4"
+  TMP_MP4="${WORK_DIR}/${CAT_NUMBER} - ${TRACK}.mp4"
+  FRAME_PNG="${OUT_DIR}/${CAT_NUMBER} - ${TRACK}.png"
 
   if [[ -f "$OUT_MP4" && -z "$FORCE" ]]; then
     print -P "%F{white}Skipping (exists, FORCE=1 to redo):%f ${OUT_MP4:t}"
     continue
+  fi
+
+  # Pick this track's cover
+  COVER=""
+  if [[ ${#TRACK_NAMES[@]} -gt 0 ]]; then
+    N="$(match_track "${WAV:t:r}")"
+    if [[ -n "$N" && -f "${VIDEO_ASSETS_DIR}/cover${N}.png" ]]; then
+      COVER="${VIDEO_ASSETS_DIR}/cover${N}.png"
+    elif [[ -n "$N" ]]; then
+      print -P "%F{yellow}cover${N}.png missing — re-run export-video-assets.sh. Using the full cover.%f"
+    else
+      print -P "%F{yellow}Couldn't match \"${WAV:t}\" to a track name. Using the full cover.%f"
+    fi
+  fi
+  if [[ -z "$COVER" ]]; then
+    COVER="$FULL_COVER"
+  fi
+  if [[ -z "$COVER" ]]; then
+    print -P "%F{red}No cover found for ${TRACK} (no cover{n}.png, no release pack/artwork/*Cover*).%f"
+    FAILED+=("$TRACK"); continue
+  fi
+
+  print -P "%F{yellow}Rendering%f ${TRACK}  %F{white}← ${COVER:t}%f"
+  if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" \
+       -filter_complex "$FRAME_FILTER" -frames:v 1 "$FRAME_PNG"; then
+    print -P "  %F{red}✗ failed to build frame%f"; FAILED+=("$TRACK"); continue
   fi
 
   DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WAV")
@@ -222,7 +273,7 @@ for WAV in "${MASTERS[@]}"; do
   FADE_OUT_START=$(( DUR - FADE ))
   MINS=$(( ${DUR%.*} / 60 )); SECS=$(( ${DUR%.*} % 60 ))
 
-  print -P "%F{yellow}Rendering%f ${TRACK} %F{white}($(printf '%d:%02d' $MINS $SECS))%f"
+  print -P "  %F{white}$(printf '%d:%02d' $MINS $SECS), encoding…%f"
 
   if ffmpeg -hide_banner -loglevel error -stats -y \
        -i "$FRAME_PNG" -i "$WAV" -t "$DUR" \
@@ -231,7 +282,8 @@ for WAV in "${MASTERS[@]}"; do
        -c:v libx264 -preset fast -tune stillimage -crf 18 -r $FPS -g $(( FPS * 2 )) \
        -c:a aac -b:a 384k -ar 48000 \
        -movflags +faststart "$TMP_MP4"; then
-    mv -f "$TMP_MP4" "$OUT_MP4"
+    rm -f "$OUT_MP4"
+    mv "$TMP_MP4" "$OUT_MP4"
     print -P "  %F{green}✓%f ${OUT_MP4:t}"
   else
     rm -f "$TMP_MP4"

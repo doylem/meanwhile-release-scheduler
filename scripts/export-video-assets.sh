@@ -6,6 +6,9 @@
 # multi-line track list.
 #
 # MW and Horizons compose their promo videos differently, so what gets exported differs:
+# Both labels also get cover{n}.png (the whole cover, mark included, showing only track
+# n's name) and track-names.txt, which make-youtube-videos.sh uses for its per-track frames.
+#
 #   MW:       bg{n}.png (background + track name baked together, mark hidden) + mark.png
 #   Horizons: sky.png (background alone, no text) + titles{n}.png (artist/catalogue/track
 #             name + wordmark, transparent, mark+background hidden) + mark.png (the sun)
@@ -346,6 +349,9 @@ fi
 print -P "  %F{white}Tracks (${#tracks[@]}):%f  ${(j:, :)tracks}"
 print ""
 
+# make-youtube-videos.sh matches each master WAV to its cover{n}.png by these names.
+print -rl -- "${tracks[@]}" > "${VIDEOS_DIR}/track-names.txt"
+
 # ── STAGE 2: per track — write single track name into the archived PSB, open  ─
 #             the master file fresh, export the per-track image(s) ───────────
 for (( n = 1; n <= ${#tracks[@]}; n++ )); do
@@ -365,6 +371,7 @@ var TIF_PATH      = "$(esc "$TIF_PATH")";
 var ARTBOARD_NAME = "$(esc "$ARTBOARD_NAME")";
 var HIDE_NAMES    = $(jsArray "${HIDE_FOR_TITLES[@]}");
 var OUT_PATH      = "$(esc "${VIDEOS_DIR}/titles${n}.png")";
+var COVER_OUT     = "$(esc "${VIDEOS_DIR}/cover${n}.png")";
 
 setTrackText(PSB_PATH, LAYER_TRACKS, TRACK_TEXT, JUST_TRACKS);
 
@@ -372,6 +379,14 @@ var exportDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, HIDE_NAMES);
 if (exportDoc) {
   exportPNG(exportDoc, new File(OUT_PATH), true);
   exportDoc.close(SaveOptions.DONOTSAVECHANGES);
+}
+// cover{n}.png — the full cover (mark visible) showing only this track's name,
+// for make-youtube-videos.sh. Separate doc: the pass above hides layers before
+// trimming, which can change the trimmed bounds (Horizons hides its Background).
+var coverDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, []);
+if (coverDoc) {
+  exportPNG(coverDoc, new File(COVER_OUT), false);
+  coverDoc.close(SaveOptions.DONOTSAVECHANGES);
 }
 JSXEOF
   else
@@ -385,6 +400,7 @@ var TIF_PATH      = "$(esc "$TIF_PATH")";
 var ARTBOARD_NAME = "$(esc "$ARTBOARD_NAME")";
 var LAYER_MARK    = "$(esc "$LAYER_MARK")";
 var OUT_PATH      = "$(esc "${VIDEOS_DIR}/bg${n}.png")";
+var COVER_OUT     = "$(esc "${VIDEOS_DIR}/cover${n}.png")";
 
 setTrackText(PSB_PATH, LAYER_TRACKS, TRACK_TEXT, JUST_TRACKS);
 
@@ -392,6 +408,14 @@ var exportDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, [LAYER_MARK]);
 if (exportDoc) {
   exportPNG(exportDoc, new File(OUT_PATH), false);
   exportDoc.close(SaveOptions.DONOTSAVECHANGES);
+}
+// cover{n}.png — the full cover (mark visible) showing only this track's name,
+// for make-youtube-videos.sh. Separate doc: the pass above hides layers before
+// trimming, which can change the trimmed bounds (Horizons hides its Background).
+var coverDoc = makeExportDoc(TIF_PATH, ARTBOARD_NAME, []);
+if (coverDoc) {
+  exportPNG(coverDoc, new File(COVER_OUT), false);
+  coverDoc.close(SaveOptions.DONOTSAVECHANGES);
 }
 JSXEOF
   fi
@@ -483,12 +507,14 @@ EXPECTED=()
 if [[ "$LABEL_KEY" == "MWH" ]]; then
   for (( n = 1; n <= ${#tracks[@]}; n++ )); do
     EXPECTED+=("${VIDEOS_DIR}/titles${n}.png")
+    EXPECTED+=("${VIDEOS_DIR}/cover${n}.png")
   done
   EXPECTED+=("${VIDEOS_DIR}/sky.png")
   EXPECTED+=("${VIDEOS_DIR}/mark.png")
 else
   for (( n = 1; n <= ${#tracks[@]}; n++ )); do
     EXPECTED+=("${VIDEOS_DIR}/bg${n}.png")
+    EXPECTED+=("${VIDEOS_DIR}/cover${n}.png")
   done
   EXPECTED+=("${VIDEOS_DIR}/mark.png")
 fi

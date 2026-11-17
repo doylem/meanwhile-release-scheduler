@@ -48,6 +48,10 @@ for promo videos. Run *after* `new-release.sh` when artwork is finalised:
   Modified Content"; only a fresh open resolves current linked content — isolates
   the target artboard, hides the Mark smart object, trims, and exports. The archived
   PSB is restored to the full track list afterwards.
+- Per track it also exports `cover{n}.png` — the whole cover (mark visible) showing only
+  that track's name — from a second fresh duplicate (the bg/titles pass hides layers before
+  trimming, which changes the trimmed bounds for Horizons). Track names are written to
+  `assets/videos/track-names.txt`. Both feed `make-youtube-videos.sh`.
 - Opens the mark PSB (same release-local-copy convention) and exports `mark.png`
   with transparency to `assets/videos/`.
 - On success, chains straight into `relink-video-project.sh` with the same label/cat args.
@@ -135,21 +139,26 @@ manipulation, no Photoshop:
   `./scripts/make-compilation-videos.sh MW MW094 "Artist - Title" ...`.
 
 **`scripts/make-youtube-videos.sh`** — One YouTube-ready MP4 per mastered track. Needs
-`ffmpeg` (`brew install ffmpeg`), no Photoshop. Independent of the other scripts — run any
-time masters and the flat cover are in the release pack:
-- Reads `release pack/masters/*.wav` and the square cover `release pack/artwork/*Cover*.jpg`.
-  If a designed 16:9 frame `release pack/artwork/*YouTube*.jpg|png` exists, that's used
-  (letterboxed, never cropped) instead of the generated frame.
-- Generated frame: 3840×2160, cover centred at 1800px over a blurred, darkened, zoomed copy
-  of itself. Composited once to `{CAT} - youtube frame.png` (doubles as a thumbnail).
-- Each track: frame + untouched master audio (AAC 384k/48kHz), H.264 30fps, picture fades
-  in/out over 2s. Output `release pack/youtube/{CAT} - {master name minus MASTERED}.mp4` —
-  deliberately not `release pack/videos/`, which check-dropbox counts as the promo deliverable.
+`ffmpeg` (`brew install ffmpeg`), no Photoshop. Run after `export-video-assets.sh`:
+- Reads `release pack/masters/*.wav`, plus `assets/videos/cover{n}.png` and
+  `track-names.txt` from `export-video-assets.sh`. Each master is matched to a track by
+  name (whole words, case/punctuation-insensitive; a track's full name like "Leaves (Dub
+  Mix)" beats its base name "Leaves", so originals and remixes resolve correctly). If a
+  master can't be matched, or there are no per-track covers yet, it falls back to the full
+  `release pack/artwork/*Cover*.jpg` with a warning.
+- Frame (tuned against the hand-made MW093 Tonaco video): 3840×2160, cover at 91% of the
+  height with a soft drop shadow offset down-right, over the same cover zoomed to 124% of
+  the width (pushes its text/logo out of frame), lightly blurred, saturation 0.5.
+- Each track: `release pack/youtube/{CAT} - {master name minus MASTERED}.png` (the frame,
+  doubles as thumbnail) and `.mp4` — H.264 30fps, untouched master as AAC 384k/48kHz,
+  picture fades in/out over 2s. Not `release pack/videos/`, which check-dropbox counts as
+  the promo deliverable.
 - Speed: the PNG is decoded once and repeated with the `loop` filter; `-loop 1` re-decodes
   the 4K PNG every frame and was ~6× slower. `h264_videotoolbox` benchmarked slower than
   libx264 here. A 7-minute track takes ~4 minutes on an M3 Pro.
-- Skips existing MP4s unless `FORCE=1`; writes `.partial.mp4` then renames so Dropbox never
-  syncs half a file. Env: `HEIGHT=1080`, `FADE=3`.
+- Skips existing MP4s unless `FORCE=1`. Encodes in a local `mktemp -d` dir and moves the
+  finished MP4 in — encoding to a temp name inside Dropbox and renaming over the old file
+  got reverted by Dropbox sync (MP4 vanished, temp file reappeared). Env: `HEIGHT=1080`, `FADE=3`.
 - Usage: `./scripts/make-youtube-videos.sh` (interactive), `./scripts/make-youtube-videos.sh MW MW096`,
   or `./scripts/make-youtube-videos.sh MW MW096 ambision` (3rd arg filters on the master
   filename only — folder names often contain track titles).

@@ -517,9 +517,9 @@ export function ReleaseDetail({
         onToggle={() => toggle('youtube')}
       >
         <p className="text-xs font-mono text-muted">
-          Once the masters are in <span className="text-snow/80">release pack/masters/</span> and the cover is
-          in <span className="text-snow/80">release pack/artwork/</span>, run this to render one 4K MP4 per track
-          into <span className="text-snow/80">release pack/youtube/</span>. Add a track name at the end to
+          After <span className="text-snow/80">Generate video assets</span> (which exports a cover per track) and
+          once the masters are in <span className="text-snow/80">release pack/masters/</span>, run this to render
+          one 4K MP4 per track into <span className="text-snow/80">release pack/youtube/</span>. Add a track name at the end to
           render just that one. Needs ffmpeg (<span className="text-snow/80">brew install ffmpeg</span>).
         </p>
         <CommandBox cmd={youtubeVideosCommand(release, label.shortCode)} rows={2} />
