@@ -51,8 +51,8 @@ configure_label() {
 
     MW)
       LABEL_NAME="Meanwhile Recordings"
-      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MW"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      TEMPLATE_DIR="$HOME/Dropbox/- MEANWHILE/_MW-Template/MW"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile"
       MASTER_EXT="tif"
       MARK_PSB="MW - mark.psb"
       PSB_TRACKS="MW - track names.psb"
@@ -67,8 +67,8 @@ configure_label() {
 
     MWH)
       LABEL_NAME="Meanwhile Horizons"
-      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
+      TEMPLATE_DIR="$HOME/Dropbox/- MEANWHILE/_MW-Template/MWH"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Horizons"
       MASTER_EXT="psd"
       MARK_PSB="MWH - mark.psb"
       PSB_TRACKS="MWH - track names.psb"

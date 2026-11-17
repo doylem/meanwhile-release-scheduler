@@ -17,9 +17,9 @@ configure_label() {
 
     MW)
       LABEL_NAME="Meanwhile Recordings"
-      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MW"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile"
-      RELEASE_FOLDER_TEMPLATE="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile/MWxxx - Template (copy me)"
+      TEMPLATE_DIR="$HOME/Dropbox/- MEANWHILE/_MW-Template/MW"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      RELEASE_FOLDER_TEMPLATE="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile/MWxxx - Template (copy me)"
       TEMPLATE_TIF="MW-Template.tif"
       MARK_PSB="MW - mark.psb"
       PSB_FILES=(
@@ -43,9 +43,9 @@ configure_label() {
 
     MWH)
       LABEL_NAME="Meanwhile Horizons"
-      TEMPLATE_DIR="/Users/matter/Dropbox/- MEANWHILE/_MW-Template/MWH"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
-      RELEASE_FOLDER_TEMPLATE="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons/MWHxxx - Template (copy me)"
+      TEMPLATE_DIR="$HOME/Dropbox/- MEANWHILE/_MW-Template/MWH"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Horizons"
+      RELEASE_FOLDER_TEMPLATE="$HOME/Dropbox/- MEANWHILE/Releases - Horizons/MWHxxx - Template (copy me)"
       TEMPLATE_TIF="MWH-Template.psd"
       MARK_PSB="MWH - mark.psb"
       PSB_FILES=(

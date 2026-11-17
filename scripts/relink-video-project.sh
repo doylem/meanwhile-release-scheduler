@@ -75,11 +75,11 @@ configure_label() {
   case "$1" in
     MW)
       LABEL_NAME="Meanwhile Recordings"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile"
       ;;
     MWH)
       LABEL_NAME="Meanwhile Horizons"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Horizons"
       ;;
   esac
 }
@@ -185,10 +185,12 @@ for WFP_PATH in "${WFP_FILES[@]}"; do
   fi
 
   # ── COMPUTE OLD/NEW FOLDER + STEM, REWRITE TEXT FILES ─────────────────────
-  python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" << 'PYEOF'
+  # ${RELEASE_DIR:A} resolves the ~/Dropbox symlink to the real
+  # ~/Library/CloudStorage/Dropbox/... path — the form Filmora stores in projects.
+  python3 - "$WORK_DIR" "$PROJECT_INFO" "$NEW_FOLDER_BASENAME" "$CAT_NUMBER" "${RELEASE_DIR:A}" << 'PYEOF'
 import json, os, re, shutil, sys, glob
 
-work_dir, project_info_path, new_folder_basename, cat_number = sys.argv[1:5]
+work_dir, project_info_path, new_folder_basename, cat_number, release_dir = sys.argv[1:6]
 
 with open(project_info_path) as f:
     info = json.load(f)
@@ -199,7 +201,7 @@ if not old_full_path:
     sys.exit(0)
 
 # Normalize: work without a leading slash so the same substring matches both
-# "/Users/matter/..." and Filmora's "file://Users/matter/..." URI form.
+# "/Users/<name>/..." and Filmora's "file://Users/<name>/..." URI form.
 old_path = old_full_path.lstrip("/")
 
 marker = "/assets/videos/"
@@ -212,7 +214,10 @@ old_filename = rest.rsplit("/", 1)[-1]
 old_stem = old_filename[:-4] if old_filename.lower().endswith(".wfp") else old_filename
 
 old_folder_basename = old_release_folder.rsplit("/", 1)[-1]
-new_release_folder = old_release_folder[: -len(old_folder_basename)] + new_folder_basename
+# Use THIS machine's actual release path rather than reusing the old path's prefix:
+# a .wfp saved on another Mac (different home folder, e.g. /Users/matter vs
+# /Users/m.doyle) would otherwise be relinked to a location that doesn't exist here.
+new_release_folder = release_dir.lstrip("/")
 
 if "_" in old_stem:
     suffix = old_stem.split("_", 1)[1]
@@ -220,7 +225,9 @@ if "_" in old_stem:
 else:
     new_stem = cat_number + "_promo_video"
 
-needs_rename = old_folder_basename != new_folder_basename
+# Compare full paths, not just folder names, so re-running on a different Mac
+# repoints a project that already names this release but under another home folder.
+needs_rename = old_release_folder != new_release_folder
 
 if needs_rename:
     print("  OLD_FOLDER=" + old_release_folder)

@@ -53,7 +53,7 @@ configure_label() {
   case "$1" in
     MW)
       LABEL_NAME="Meanwhile Recordings"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile"
       # Template project is {anything}_{TEMPLATE_SUFFIX}.wfp in assets/videos/.
       TEMPLATE_SUFFIX="excursions_promo_vid"
       TITLE_VIDEO_TRACK=7
@@ -63,7 +63,7 @@ configure_label() {
       ;;
     MWH)
       LABEL_NAME="Meanwhile Horizons"
-      RELEASES_DIR="/Users/matter/Dropbox/- MEANWHILE/Releases - Horizons"
+      RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Horizons"
       TEMPLATE_SUFFIX=""
       ;;
   esac
