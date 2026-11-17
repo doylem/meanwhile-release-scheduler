@@ -1,0 +1,37 @@
+{
+  "requestId": "72e55b3c-7175-486e-be73-f1277c56eb66",
+  "completedAt": "2026-11-17T02:13:41.985Z",
+  "ok": true,
+  "catalogueNumber": "MW097",
+  "folderFound": true,
+  "folderPath": "/- MEANWHILE/Releases - Meanwhile/MW097 - Mike Rish - Foundation EP",
+  "categories": {
+    "masters": {
+      "found": false,
+      "fileCount": 0
+    },
+    "artwork": {
+      "found": false,
+      "fileCount": 0
+    },
+    "videos": {
+      "found": false,
+      "fileCount": 0
+    },
+    "assets": {
+      "found": false,
+      "fileCount": 0
+    },
+    "premasters": {
+      "found": true,
+      "fileCount": 3
+    },
+    "remixPacks": {
+      "found": false,
+      "fileCount": 0
+    }
+  },
+  "sharedLinks": {
+    "premasters": "https://www.dropbox.com/scl/fo/lmz048pl1t2vn21jscpyj/AKejE4HAH-je-YxnEPrJ6pg?rlkey=xdidw196tdcsezo8rdg6phv6m&dl=0"
+  }
+}
