@@ -150,9 +150,14 @@ manipulation, no Photoshop:
   master can't be matched, or there are no per-track covers yet, it falls back to the full
   `release pack/artwork/*Cover*.jpg` with a warning.
 - Frame (tuned against the hand-made MW093 Tonaco video): 3840×2160, cover at 91% of the
-  height with a soft drop shadow offset down-right. Background = `assets/videos/cover-mark.png`
-  (the mark only, no gradient) on black, zoomed to 124% of the width, lightly blurred,
-  saturation 0.5. Without `cover-mark.png` it uses the track's cover instead (gradient included).
+  height with a soft drop shadow offset down-right, over a background zoomed to 124% of
+  the width and lightly blurred. Background is per label (`BG_ASSET` etc. in `configure_label`):
+  - MW: `assets/videos/cover-mark.png` (the mark only, no gradient) on black, saturation 0.5.
+  - MWH: `assets/videos/sky.png` (sky only), greyscale, highlights capped at 55% so it doesn't
+    pull focus from the cover. Not the mark: the Horizons sun is dark grey on its own (it only
+    reads via blending with the sky) and vanishes on black.
+  - If the asset is missing, the track's own cover is used. Env overrides: `BG_SATURATION`,
+    `BG_MAX_LEVEL`.
 - Each track: `release pack/youtube/{CAT} - {master name minus MASTERED}.png` (the frame,
   doubles as thumbnail) and `.mp4` — H.264 30fps, untouched master as AAC 384k/48kHz,
   picture fades in/out over 2s. Not `release pack/videos/`, which check-dropbox counts as

@@ -35,6 +35,8 @@
 #   FADE=3        fade in/out seconds (default 2)
 #   FORCE=1       re-render MP4s that already exist
 #   FRAME_ONLY=1  only build the frame PNG(s) for review — no MP4s encoded
+#   BG_SATURATION=0  background saturation (0 = greyscale; default per label)
+#   BG_MAX_LEVEL=0.55  background highlight cap, 0–1 (default per label)
 #
 # Usage:
 #   Interactive:     ./scripts/make-youtube-videos.sh
@@ -62,10 +64,21 @@ configure_label() {
     MW)
       LABEL_NAME="Meanwhile Recordings"
       RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Meanwhile"
+      # Background: the mark alone on black (no gradient)
+      BG_ASSET="cover-mark.png"
+      BG_SATURATION="${BG_SATURATION:-0.5}"
+      BG_MAX_LEVEL="${BG_MAX_LEVEL:-1}"
       ;;
     MWH)
       LABEL_NAME="Meanwhile Horizons"
       RELEASES_DIR="$HOME/Dropbox/- MEANWHILE/Releases - Horizons"
+      # Background: the sky alone. The Horizons mark (sun) is dark grey on its own — it
+      # only reads on the cover via blending with the sky — so it vanishes on black.
+      # Greyscale with highlights capped at 55%, so the bright clouds don't pull focus
+      # from the cover (approved on MWH026).
+      BG_ASSET="sky.png"
+      BG_SATURATION="${BG_SATURATION:-0}"
+      BG_MAX_LEVEL="${BG_MAX_LEVEL:-0.55}"
       ;;
     *)
       print -P "%F{red}Unknown label: $1 (expected MW or MWH)%f"; exit 1
@@ -163,11 +176,14 @@ fi
 FULL_COVERS=("${ARTWORK_DIR}"/*(#i)cover*.(#i)(jpg|jpeg|png)(N.))
 FULL_COVER="${FULL_COVERS[1]}"
 
-# Background source: the mark alone (transparent, at its position on the cover) if
-# export-video-assets.sh has produced it, so the wide background is just the zoomed,
-# blurred mark on black — no gradient. Otherwise the track's own cover is used.
-COVER_MARK="${VIDEO_ASSETS_DIR}/cover-mark.png"
-[[ -f "$COVER_MARK" ]] || COVER_MARK=""
+# Background source, per label (BG_ASSET in configure_label), from export-video-assets.sh:
+# MW = cover-mark.png (mark alone, transparent, at its cover position → mark on black),
+# MWH = sky.png (sky alone, no sun/text). If missing, the track's own cover is used.
+BG_SOURCE="${VIDEO_ASSETS_DIR}/${BG_ASSET}"
+if [[ ! -f "$BG_SOURCE" ]]; then
+  print -P "%F{yellow}No assets/videos/${BG_ASSET} — run export-video-assets.sh. Using the cover as background.%f"
+  BG_SOURCE=""
+fi
 
 TRACK_NAMES=()
 if [[ -f "${VIDEO_ASSETS_DIR}/track-names.txt" ]]; then
@@ -224,13 +240,19 @@ WORK_DIR="$(mktemp -d -t meanwhile-youtube)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 # ── Frame: cover centred with drop shadow over a zoomed, muted copy of itself ─
-# Input 0 = this track's cover, input 1 = background source (cover-mark.png or the cover).
+# Highlight cap only when below 1 — colorlevels at 1 isn't a byte-exact no-op.
+BG_LEVELS_FILTER=""
+if (( BG_MAX_LEVEL < 1 )); then
+  BG_LEVELS_FILTER=",colorlevels=romax=${BG_MAX_LEVEL}:gomax=${BG_MAX_LEVEL}:bomax=${BG_MAX_LEVEL}"
+fi
+
+# Input 0 = this track's cover, input 1 = background source (BG_SOURCE, or the cover).
 # The background is laid over black first, which is a no-op for an opaque cover.
 FRAME_FILTER="[0:v]null[b];
   color=c=black:s=${BG_SIZE}x${BG_SIZE}:d=1[blk];
   [1:v]scale=${BG_SIZE}:${BG_SIZE}:flags=bicubic,format=rgba[bgsrc];
   [blk][bgsrc]overlay=0:0,crop=${WIDTH}:${HEIGHT},
-     gblur=sigma=$(( HEIGHT / 360 )),eq=saturation=0.5:brightness=-0.03[bg];
+     gblur=sigma=$(( HEIGHT / 360 )),eq=saturation=${BG_SATURATION}:brightness=-0.03${BG_LEVELS_FILTER}[bg];
   [b]scale=${COVER_SIZE}:${COVER_SIZE}:flags=lanczos,format=rgba[fg];
   color=c=black@${SHADOW_OPACITY}:s=${COVER_SIZE}x${COVER_SIZE}:d=1,format=rgba,
      pad=w=iw+$(( SHADOW_BLUR * 8 )):h=ih+$(( SHADOW_BLUR * 8 )):x=$(( SHADOW_BLUR * 4 )):y=$(( SHADOW_BLUR * 4 )):color=black@0,
@@ -273,7 +295,7 @@ for WAV in "${MASTERS[@]}"; do
   fi
 
   print -P "%F{yellow}Rendering%f ${TRACK}  %F{white}← ${COVER:t}%f"
-  if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" -i "${COVER_MARK:-$COVER}" \
+  if ! ffmpeg -hide_banner -loglevel error -y -i "$COVER" -i "${BG_SOURCE:-$COVER}" \
        -filter_complex "$FRAME_FILTER" -frames:v 1 "$FRAME_PNG"; then
     print -P "  %F{red}✗ failed to build frame%f"; FAILED+=("$TRACK"); continue
   fi
